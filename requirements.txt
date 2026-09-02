@@ -16,7 +16,7 @@ matching==1.4.3          # Gale-Shapley stable matching (Tier 1)
 geopy==2.4.1             # Geodesic distance fallback
 
 # Testing
-pytest==9.0.3
+pytest==9.1.1
 
 # Data source connectors (HTTP)
 requests==2.33.1
