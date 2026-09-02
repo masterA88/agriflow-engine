@@ -41,6 +41,6 @@ python-multipart==0.0.28 # FastAPI form parsing for Twilio webhook
 pyjwt[crypto]==2.10.1
 
 # Database layer (Step 1 — Supabase/Postgres backend; gated by DATA_BACKEND=postgres)
-sqlalchemy==2.0.41       # ORM / core — used by db/db_loader.py
+sqlalchemy==2.0.52       # ORM / core — used by db/db_loader.py
 psycopg2-binary==2.9.10  # Postgres adapter for SQLAlchemy
 supabase==2.15.2         # Supabase Python client (auth, storage, RPC — future use)
