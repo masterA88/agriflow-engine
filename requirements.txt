@@ -6,7 +6,7 @@
 
 # Core scientific
 scipy==1.17.1
-numpy==2.4.4
+numpy==2.5.2
 pandas==2.3.3           # used by tests/test_real_surplus_deficit_*.py (deep DataFrame usage)
 
 # Algorithm libraries
