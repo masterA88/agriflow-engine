@@ -62,7 +62,7 @@ jobs:
         run: python benchmarks/latency.py | tee benchmark_results.txt
 
       - name: Upload benchmark artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: latency-benchmark-${{ github.sha }}
           path: benchmark_results.txt
