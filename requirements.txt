@@ -19,7 +19,7 @@ geopy==2.4.1             # Geodesic distance fallback
 pytest==9.0.3
 
 # Data source connectors (HTTP)
-requests==2.33.1
+requests==2.34.2
 beautifulsoup4==4.14.3   # HTML parsing untuk PIHPS scraper
 
 # API server — required by whatsapp_bot/
