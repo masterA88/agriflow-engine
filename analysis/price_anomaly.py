@@ -81,9 +81,11 @@ from __future__ import annotations
 
 import csv
 import datetime
+import functools
+import math
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Iterable
 
 import numpy as np
 
@@ -166,6 +168,211 @@ def _load_all_rows(price_dir: Path) -> Dict[Tuple[str, str], List[Tuple[datetime
         series_map[key].sort(key=lambda x: x[0])
 
     return series_map
+
+
+# ---------------------------------------------------------------------------
+# Source-aware anomaly adapter (new public path; legacy functions stay below)
+# ---------------------------------------------------------------------------
+
+ANOMALY_ARTIFACT_SCHEMA_VERSION = "source-aware-anomaly/v1"
+ACTIVE_SOURCE_POLICY = "SISKAPERBAPO_EXACT_KEY_THEN_PIHPS"
+SUPPORTED_ANOMALY_COMMODITIES = (
+    "beras_premium", "beras_medium", "daging_ayam", "telur_ayam",
+    "bawang_merah", "bawang_putih", "cabai_rawit",
+)
+_SOURCE_NAMES = ("SISKAPERBAPO", "PIHPS")
+MARKET_QUALITY_UNAVAILABLE = "UNAVAILABLE_DERIVED_FILE_HAS_FOUR_COLUMNS"
+ROOT = Path(__file__).parent.parent
+DEFAULT_REGION_REGISTRY = ROOT / "sample_data" / "kabupaten_jatim.csv"
+
+
+@functools.lru_cache(maxsize=16)
+def _cached_anomaly_registry(reference_path: str) -> tuple[tuple[str, str], ...]:
+    """Read the authoritative anomaly registry and reject incomplete variants."""
+    path = Path(reference_path)
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        required = {"kab_id", "nama"}
+        missing = required - set(reader.fieldnames or ())
+        if missing:
+            raise ValueError(f"{path}: missing required columns: {', '.join(sorted(missing))}")
+        rows: list[tuple[str, str]] = []
+        for line_number, row in enumerate(reader, start=2):
+            city_id = (row.get("kab_id") or "").strip()
+            city_name = (row.get("nama") or "").strip()
+            if not city_id or not city_name:
+                raise ValueError(f"{path}:{line_number}: kab_id and nama must be nonempty")
+            rows.append((city_id, city_name))
+
+    ids = [city_id for city_id, _ in rows]
+    names = [city_name for _, city_name in rows]
+    if len(rows) != 38:
+        raise ValueError(f"{path}: expected exactly 38 regions, found {len(rows)}")
+    if len(set(ids)) != 38:
+        raise ValueError(f"{path}: kab_id values must be unique")
+    if len(set(names)) != 38:
+        raise ValueError(f"{path}: nama values must be unique")
+    return tuple(rows)
+
+
+def load_anomaly_region_registry(
+    reference_path: str | Path = DEFAULT_REGION_REGISTRY,
+) -> tuple[tuple[str, str], ...]:
+    """Return cached `(city_id, city_name)` registry rows in file order."""
+    return _cached_anomaly_registry(str(Path(reference_path).resolve()))
+
+
+def group_active_price_series(
+    active_records: Iterable[Dict[str, Any]],
+    registry: Iterable[tuple[str, str]] | None = None,
+) -> Dict[Tuple[str, str], List[Dict[str, Any]]]:
+    """Group selected public-loader records without filling or blending history.
+
+    This adapter deliberately receives the result of `select_active_prices`; it
+    never applies source precedence itself. Unsupported commodities and regions
+    outside the authoritative registry are not anomaly-series inputs.
+    """
+    region_ids = {city_id for city_id, _ in (registry or load_anomaly_region_registry())}
+    grouped: Dict[Tuple[str, str], List[Dict[str, Any]]] = defaultdict(list)
+    for row in active_records:
+        commodity = row["commodity_code"]
+        city_id = str(row["city_id"])
+        source = row["data_source"]
+        price = float(row["price_per_kg"])
+        if commodity not in SUPPORTED_ANOMALY_COMMODITIES or city_id not in region_ids:
+            continue
+        if source not in _SOURCE_NAMES:
+            raise ValueError(f"Unsupported selected data_source {source!r}")
+        if not math.isfinite(price) or price <= 0:
+            raise ValueError(f"Invalid selected price for {(row['date'], city_id, commodity)!r}")
+        if not isinstance(row["date"], datetime.date):
+            raise ValueError("Selected active price date must be datetime.date")
+        grouped[(commodity, city_id)].append({
+            "date": row["date"],
+            "city_id": city_id,
+            "commodity_code": commodity,
+            "price_per_kg": price,
+            "data_source": source,
+        })
+
+    ordered: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
+    for key in sorted(grouped):
+        observations = sorted(grouped[key], key=lambda record: record["date"])
+        dates = [record["date"] for record in observations]
+        if len(dates) != len(set(dates)):
+            raise ValueError(f"Duplicate selected active observation for {key!r}")
+        ordered[key] = observations
+    return ordered
+
+
+def _history_status(
+    city_id: str,
+    city_name: str,
+    commodity_code: str,
+    observations: List[Dict[str, Any]],
+    generation_date: datetime.date,
+) -> Dict[str, Any]:
+    """Return honest selected-history metadata for one fixed status matrix cell."""
+    count = len(observations)
+    source_counts = {
+        source: sum(record["data_source"] == source for record in observations)
+        for source in _SOURCE_NAMES
+    }
+    base: Dict[str, Any] = {
+        "city_id": city_id,
+        "city_name": city_name,
+        "commodity_code": commodity_code,
+        "observation_count": count,
+        "active_history_source_counts": source_counts,
+        "market_quality": None,
+        "market_quality_availability": MARKET_QUALITY_UNAVAILABLE,
+    }
+    if count == 0:
+        return {
+            **base,
+            "series_status": "NO_ACTIVE_HISTORY",
+            "history_start_date": None,
+            "latest_observation_date": None,
+            "history_coverage_ratio": None,
+            "history_confidence": None,
+            "latest_observation_source": None,
+            "observation_freshness_days": None,
+        }
+
+    history_start = observations[0]["date"]
+    latest = observations[-1]
+    coverage = round(count / ((latest["date"] - history_start).days + 1), 6)
+    confidence = "HIGH" if coverage >= 0.90 else "MEDIUM" if coverage >= 0.70 else "LOW"
+    return {
+        **base,
+        "series_status": "DETECTABLE" if count >= 30 else "INSUFFICIENT_HISTORY",
+        "history_start_date": history_start.isoformat(),
+        "latest_observation_date": latest["date"].isoformat(),
+        "history_coverage_ratio": coverage,
+        "history_confidence": confidence,
+        "latest_observation_source": latest["data_source"],
+        "observation_freshness_days": (generation_date - latest["date"]).days,
+    }
+
+
+def build_source_aware_anomaly_result(
+    active_records: Iterable[Dict[str, Any]],
+    generated_at: datetime.datetime,
+    registry_path: str | Path = DEFAULT_REGION_REGISTRY,
+) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Evaluate selected active history into 266 statuses and provenance events.
+
+    The detector is intentionally called only after a series is labelled
+    `DETECTABLE`; this leaves 0 and 1--29 observation series unavailable rather
+    than inventing a numerical result.
+    """
+    if generated_at.tzinfo is None:
+        generated_at = generated_at.replace(tzinfo=datetime.timezone.utc)
+    registry = load_anomaly_region_registry(registry_path)
+    grouped = group_active_price_series(active_records, registry)
+    statuses: List[Dict[str, Any]] = []
+    events: List[Dict[str, Any]] = []
+
+    for city_id, city_name in registry:
+        for commodity_code in SUPPORTED_ANOMALY_COMMODITIES:
+            observations = grouped.get((commodity_code, city_id), [])
+            status = _history_status(
+                city_id, city_name, commodity_code, observations, generated_at.date()
+            )
+            statuses.append(status)
+            if status["series_status"] != "DETECTABLE":
+                continue
+
+            numerical_series = [
+                (record["date"], record["price_per_kg"]) for record in observations
+            ]
+            observation_by_date = {record["date"]: record for record in observations}
+            for anomaly in detect_anomalies(numerical_series):
+                selected = observation_by_date[anomaly["date"]]
+                events.append({
+                    "date": anomaly["date"].isoformat(),
+                    "price": float(anomaly["price"]),
+                    "rolling_median": float(anomaly["rolling_median"]),
+                    "deviation_pct": float(anomaly["deviation_pct"]),
+                    "type": anomaly["type"],
+                    "score": float(anomaly["score"]),
+                    "persistent": bool(anomaly["persistent"]),
+                    "city_id": city_id,
+                    "city_name": city_name,
+                    "commodity_code": commodity_code,
+                    "observation_provenance": {
+                        "data_source": selected["data_source"],
+                        "observation_date": selected["date"].isoformat(),
+                        "price_per_kg": float(selected["price_per_kg"]),
+                    },
+                })
+
+    events.sort(
+        key=lambda event: (
+            -event["score"], event["commodity_code"], event["city_id"], event["date"]
+        )
+    )
+    return statuses, events
 
 
 # ---------------------------------------------------------------------------

@@ -63,7 +63,7 @@ export default function ForecastPanel({ forecast, history, loading, error }: {
 }) {
   if (error) return <div className="rounded-lg p-3 bg-rose-50 text-xs text-rose-700 border border-rose-200">{error}</div>;
   if (loading) return <div className="rounded-lg p-3 text-xs text-zinc-400 animate-pulse">Memuat prakiraan...</div>;
-  if (!forecast) return <div className="rounded-lg p-3 text-xs text-zinc-500">Belum ada prakiraan untuk pasangan komoditas dan kota ini. Prakiraan tersedia untuk 8 kota IHK PIHPS.</div>;
+  if (!forecast) return <div className="rounded-lg p-3 text-xs text-zinc-500">Belum ada prakiraan untuk pasangan komoditas dan kota ini. Prakiraan tersedia untuk 38 kabupaten/kota.</div>;
 
   const isBaseline = forecast.method === "seasonal_naive_baseline";
   const conformal = forecast.interval_method === "split_conformal_rolling_origin";
@@ -93,7 +93,7 @@ export default function ForecastPanel({ forecast, history, loading, error }: {
         <span className="text-zinc-400">Rentang hari 30: {fmtIdr(last.p10)} sampai {fmtIdr(last.p90)}</span>
       </div>
       <div className="px-3 pb-2 flex flex-wrap gap-3 text-[10px] text-zinc-500">
-        <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-zinc-800 inline-block" /> observasi PIHPS</span>
+        <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-zinc-800 inline-block" /> observasi harga aktif (SISKAPERBAPO + PIHPS)</span>
         <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-[#5b7245] inline-block" /> prakiraan titik</span>
         <span className="flex items-center gap-1"><span className="w-4 h-3 bg-[#5b7245]/20 inline-block rounded-sm" /> P10 sampai P90</span>
         {isBaseline && <span className="text-amber-700">Median bulan-yang-sama, bukan foundation model. MAPE backtest 10,8%.</span>}

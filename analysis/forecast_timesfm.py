@@ -1,4 +1,4 @@
-"""
+﻿"""
 analysis/forecast_timesfm.py  --  Offline forecast precompute for AgriFlow.
 
 ARCHITECTURE:
@@ -57,17 +57,19 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import functools
 import json
 import math
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List, Tuple
 
 ROOT = Path(__file__).parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from analysis.price_anomaly import _load_all_rows, CITY_NAMES
+from analysis.price_anomaly import load_anomaly_region_registry
+from db.price_ingest import load_source_price_history_csvs, select_active_prices
 
 HORIZON = 30
 
@@ -241,28 +243,26 @@ def _timesfm_available() -> bool:
         return False
 
 
-def _timesfm_forecast(
-    series: list[tuple[datetime.date, float]],
-    horizon: int = HORIZON,
-    model_path: str = "google/timesfm-2.0-500m-pytorch",
-) -> list[dict[str, Any]]:
+@functools.lru_cache(maxsize=2)
+def _load_timesfm_model(model_path: str):
     """
-    Run TimesFM 2.0 (PyTorch variant) on one price series.
-    Loads the model on first call (expensive — ~2 GB download + load).
-    Caller must ensure timesfm is installed and Python 3.10/3.11 is active.
+    Load the TimesFM 2.0 (500m PyTorch) checkpoint once and cache it.
+
+    The 2.0-500m checkpoint is a 50-layer, 2048-context model; the library
+    defaults (20 layers, 512 context) target the 1.0 checkpoint and will not
+    load the 2.0 weights. Loading is expensive (~2 GB download on first run +
+    model init), so this is cached and reused across all 266 series instead of
+    being rebuilt per call.
     """
     import timesfm
-    import numpy as np
 
-    prices = np.array([p for _, p in series], dtype=float)
-    dates  = [d for d, _ in series]
-
-    # TimesFM 2.0 PyTorch API
-    tfm = timesfm.TimesFm(
+    return timesfm.TimesFm(
         hparams=timesfm.TimesFmHparams(
             backend="cpu",
             per_core_batch_size=1,
-            horizon_len=horizon,
+            horizon_len=HORIZON,
+            context_len=2048,        # 2.0-500m context (multiple of input_patch_len=32)
+            num_layers=50,           # 2.0-500m has 50 transformer layers (1.0 had 20)
             num_heads=16,
             use_positional_embedding=False,
         ),
@@ -271,24 +271,46 @@ def _timesfm_forecast(
         ),
     )
 
+
+def _timesfm_forecast(
+    series: list[tuple[datetime.date, float]],
+    horizon: int = HORIZON,
+    model_path: str = "google/timesfm-2.0-500m-pytorch",
+) -> list[dict[str, Any]]:
+    """
+    Run TimesFM 2.0 (PyTorch variant) on one price series.
+    Uses the process-cached model (see `_load_timesfm_model`).
+    Caller must ensure timesfm is installed and Python 3.10/3.11 is active.
+    """
+    import numpy as np
+
+    prices = np.array([p for _, p in series], dtype=float)
+    dates  = [d for d, _ in series]
+
+    tfm = _load_timesfm_model(model_path)
+
     forecast_input = [prices]
     freq           = [0]  # 0 = high-frequency (daily)
 
-    _, quantile_forecasts = tfm.forecast(
-        forecast_input,
-        freq=freq,
-        quantile_levels=[0.1, 0.5, 0.9],
-    )
+    # timesfm 1.3.0 API: forecast() returns (point_forecast, quantile_forecast).
+    # quantile_forecast has shape (batch, horizon, 10): index 0 is the mean and
+    # indices 1..9 map to quantiles 0.1..0.9. So p10 = col 1, p90 = col 9.
+    point_forecasts, quantile_forecasts = tfm.forecast(forecast_input, freq=freq)
 
-    # quantile_forecasts shape: (batch=1, horizon, 3)
-    qf = quantile_forecasts[0]  # (horizon, 3)
+    pf = point_forecasts[0]     # (horizon,)
+    qf = quantile_forecasts[0]  # (horizon, 10)
     last_date = dates[-1]
     result = []
     for h in range(horizon):
         target_date = last_date + datetime.timedelta(days=h + 1)
-        p10   = float(qf[h, 0])
-        point = float(qf[h, 1])
-        p90   = float(qf[h, 2])
+        point = float(pf[h])
+        p10   = float(qf[h, 1])
+        p90   = float(qf[h, 9])
+        # TimesFM 2.0 quantile heads are uncalibrated (per the model card) and
+        # can cross on very flat series. Enforce p10 <= point <= p90 so the
+        # dashboard forecast band always renders correctly.
+        p10   = min(p10, point)
+        p90   = max(p90, point)
         result.append({
             "date":  target_date.isoformat(),
             "point": round(point, 2),
@@ -315,7 +337,7 @@ def main(
     if method == "auto":
         if _timesfm_available():
             method = "timesfm"
-            print("TimesFM detected — will use real model.")
+            print("TimesFM detected â€” will use real model.")
         else:
             method = "baseline"
             print(
@@ -326,7 +348,24 @@ def main(
             )
 
     generated_at = datetime.datetime.utcnow().isoformat() + "Z"
-    series_map   = _load_all_rows(price_dir)
+
+    source_records = load_source_price_history_csvs(price_dir)
+    active_records  = select_active_prices(source_records)
+    city_lookup      = dict(load_anomaly_region_registry())
+
+    series_map: Dict[Tuple[str, str], List[Tuple[datetime.date, float]]] = {}
+    for record in active_records:
+
+
+        key = (record["commodity_code"], str(record["city_id"]))
+        if key not in series_map:
+            series_map[key] = []
+        series_map[key].append(
+            (record["date"], float(record["price_per_kg"]))
+        )
+
+    for key, pts in series_map.items():
+        pts.sort(key=lambda x: x[0])
 
     print(f"Forecasting {len(series_map)} series ...")
     all_records: list[dict[str, Any]] = []
@@ -341,7 +380,7 @@ def main(
                 fc_points = _timesfm_forecast(series, horizon=HORIZON, model_path=model_path)
                 method_label = "timesfm_2.0"
             except Exception as exc:
-                print(f"  TimesFM failed for {commodity}/{city}: {exc} — using baseline")
+                print(f"  TimesFM failed for {commodity}/{city}: {exc} â€” using baseline")
                 fc_points    = _seasonal_naive_forecast(series, horizon=HORIZON)
                 method_label = "seasonal_naive_baseline"
         else:
@@ -357,7 +396,7 @@ def main(
         all_records.append({
             "commodity_code":   commodity,
             "city_id":          city,
-            "city_name":        CITY_NAMES.get(city, city),
+            "city_name":        city_lookup.get(city, city),
             "method":           method_label,
             **interval_info,
             "generated_at":     generated_at,
@@ -365,7 +404,7 @@ def main(
             "history_end_date": series[-1][0].isoformat(),
             "forecasts":        fc_points,
         })
-        print(f"  {commodity}/{city}: {method_label} — last obs {series[-1][0]}")
+        print(f"  {commodity}/{city}: {method_label} â€” last obs {series[-1][0]}")
 
     with out_path.open("w", encoding="utf-8") as fh:
         json.dump(all_records, fh, ensure_ascii=False, separators=(",", ":"))

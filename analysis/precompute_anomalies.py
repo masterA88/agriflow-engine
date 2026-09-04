@@ -9,65 +9,99 @@ Usage:
     python analysis/precompute_anomalies.py --price-dir sample_data/price_history
                                              --out-dir sample_data/anomalies
 
-Output schema per record:
-    date           str (ISO 8601, YYYY-MM-DD)
-    price          float
-    rolling_median float
-    deviation_pct  float
-    type           str  ("SPIKE" | "DROP")
-    score          float
-    commodity_code str
-    city_id        str
-    city_name      str
-    persistent     bool
+Output is a versioned source-aware artifact object with all 266 region/commodity
+status members and zero or more provenance-bearing anomaly events.
 """
 
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from analysis.price_anomaly import scan_all, CITY_NAMES
+from analysis.price_anomaly import (
+    ACTIVE_SOURCE_POLICY,
+    ANOMALY_ARTIFACT_SCHEMA_VERSION,
+    build_source_aware_anomaly_result,
+)
+from db.price_ingest import load_source_price_history_csvs, select_active_prices
 
 # Honest method label served by the API (was "shesd_v2" until v1.1, see audit F3).
 ANOMALY_METHOD = "hampel_mad_v2"
 
 
-def main(price_dir: Path, out_dir: Path) -> None:
+def _utc_timestamp(value: datetime.datetime | None = None) -> datetime.datetime:
+    """Capture one UTC instant for all metadata in a single artifact."""
+    timestamp = value or datetime.datetime.now(datetime.timezone.utc)
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
+    return timestamp.astimezone(datetime.timezone.utc)
+
+
+def _atomic_write_json(path: Path, payload: dict) -> None:
+    """Publish a complete artifact, never a partially written JSON document."""
+    with tempfile.NamedTemporaryFile(
+        mode="w", encoding="utf-8", dir=path.parent,
+        prefix=f".{path.name}.", suffix=".tmp", delete=False,
+    ) as handle:
+        temp_path = Path(handle.name)
+        json.dump(payload, handle, ensure_ascii=False, separators=(",", ":"))
+        handle.flush()
+        os.fsync(handle.fileno())
+    try:
+        os.replace(temp_path, path)
+    except Exception:
+        temp_path.unlink(missing_ok=True)
+        raise
+
+
+def build_artifact(
+    active_records: list[dict],
+    generated_at: datetime.datetime | None = None,
+) -> dict:
+    """Build the versioned artifact from selected source-aware observations."""
+    timestamp = _utc_timestamp(generated_at)
+    statuses, events = build_source_aware_anomaly_result(active_records, timestamp)
+    return {
+        "schema_version": ANOMALY_ARTIFACT_SCHEMA_VERSION,
+        "artifact_type": "source_aware_anomaly",
+        "generated_at": timestamp.isoformat().replace("+00:00", "Z"),
+        "method": "shesd_v2",
+        "active_source_policy": ACTIVE_SOURCE_POLICY,
+        "series_statuses": statuses,
+        "events": events,
+    }
+
+
+def main(
+    price_dir: Path,
+    out_dir: Path,
+    generated_at: datetime.datetime | None = None,
+) -> dict:
+    """Load, select, evaluate, and atomically publish one anomaly artifact."""
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "anomalies_all.json"
 
-    print(f"Scanning {price_dir} ...")
-    anomalies = scan_all(price_dir, window=30, k=3.0, trend_window=30, persist=2)
-    print(f"  Found {len(anomalies)} anomalies across all series.")
-
-    # Serialise: convert datetime.date -> str, numpy floats -> float
-    records = []
-    for a in anomalies:
-        records.append({
-            "date":           a["date"].isoformat(),
-            "price":          float(a["price"]),
-            "rolling_median": float(a["rolling_median"]),
-            "deviation_pct":  float(a["deviation_pct"]),
-            "type":           a["type"],
-            "score":          float(a["score"]),
-            "commodity_code": a["commodity_code"],
-            "city_id":        a["city_id"],
-            "city_name":      CITY_NAMES.get(a["city_id"], a["city_id"]),
-            "persistent":     bool(a["persistent"]),
-        })
-
-    with out_path.open("w", encoding="utf-8") as fh:
-        json.dump(records, fh, ensure_ascii=False, separators=(",", ":"))
+    print(f"Loading source-aware price history from {price_dir} ...")
+    source_records = load_source_price_history_csvs(price_dir)
+    active_records = select_active_prices(source_records)
+    artifact = build_artifact(active_records, generated_at)
+    _atomic_write_json(out_path, artifact)
 
     size_kb = out_path.stat().st_size / 1024
-    print(f"  Wrote {len(records)} records to {out_path}  ({size_kb:.1f} KB)")
+    print(
+        f"  Wrote {len(artifact['series_statuses'])} statuses and "
+        f"{len(artifact['events'])} events to {out_path} ({size_kb:.1f} KB)"
+    )
+    return artifact
 
     # v1.1: provenance sidecar so the API can report "data per" honestly.
     import datetime as _dt

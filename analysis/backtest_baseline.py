@@ -34,39 +34,44 @@ import argparse
 import datetime
 import json
 import os
+import sys
 from collections import defaultdict
+from pathlib import Path
 
 import numpy as np
-import pandas as pd
 
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from db.price_ingest import load_source_price_history_csvs, select_active_prices
 from forecast_timesfm import _seasonal_naive_forecast  # the deployed baseline
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PRICE_DIR = os.path.join(ROOT, "sample_data", "price_history")
-
-# file -> canonical commodity (mirrors price_ingest mapping)
-FILE_COMMODITY = {
-    "bawang_merah_cleaned.csv": "bawang_merah",
-    "bawang_putih_cleaned.csv": "bawang_putih",
-    "cabe_rawit_cleaned.csv": "cabai_rawit",
-    "daging_ayam_cleaned.csv": "daging_ayam",
-    "telur_ayam_cleaned.csv": "telur_ayam",
-    "medium1_cleaned.csv": "beras_medium",
-    "medium2_cleaned.csv": "beras_medium",
-    "super1_cleaned.csv": "beras_premium",
-    "super2_cleaned.csv": "beras_premium",
-}
+PRICE_DIR = ROOT / "sample_data" / "price_history"
 
 
-def _load_series(path: str):
-    """Return {city_id: [(date, price), ...] sorted by date}."""
-    df = pd.read_csv(path)
-    df["date"] = pd.to_datetime(df["date"]).dt.date
-    df = df.sort_values("date")
-    out: dict[str, list[tuple[datetime.date, float]]] = defaultdict(list)
-    for cid, g in df.groupby(df["city_id"].astype(str)):
-        out[cid] = list(zip(g["date"].tolist(), g["price_per_kg"].astype(float).tolist()))
-    return out
+def _load_active_series(price_dir: Path = PRICE_DIR):
+    """Load source-aware active prices and group one date-sorted series per (commodity, city).
+
+    This is the exact public-loader sequence that produces ``forecast_all.json``
+    (``load_source_price_history_csvs`` followed by ``select_active_prices``), so
+    the seasonal-naive baseline is measured on the same cleaned Siskaperbapo-first
+    active data served by the dashboard.
+    """
+    source_records = load_source_price_history_csvs(Path(price_dir))
+    active_records = select_active_prices(source_records)
+    grouped: dict[str, dict[str, list]] = defaultdict(lambda: defaultdict(list))
+    for row in active_records:
+        grouped[row["commodity_code"]][str(row["city_id"])].append(
+            (row["date"], float(row["price_per_kg"]))
+        )
+    return {
+        commodity: {
+            city_id: sorted(points, key=lambda point: point[0])
+            for city_id, points in by_city.items()
+        }
+        for commodity, by_city in grouped.items()
+    }
 
 
 def _score(series, horizon: int, conformal: bool = True):
@@ -108,18 +113,16 @@ def main():
     args = ap.parse_args()
     conformal = not args.no_conformal
 
+    active = _load_active_series(PRICE_DIR)
+
     per_commodity: dict[str, list[dict]] = defaultdict(list)
     detail = []
-    for fname, comm in FILE_COMMODITY.items():
-        path = os.path.join(PRICE_DIR, fname)
-        if not os.path.exists(path):
-            continue
-        series_by_city = _load_series(path)
-        for cid, series in series_by_city.items():
-            m = _score(series, args.horizon, conformal=conformal)
+    for comm, by_city in sorted(active.items()):
+        for cid, series in sorted(by_city.items()):
+            m = _score(series, args.horizon)
             if m is None:
                 continue
-            m2 = {"commodity": comm, "city_id": cid, "file": fname, **m}
+            m2 = {"commodity": comm, "city_id": cid, **m}
             per_commodity[comm].append(m2)
             detail.append(m2)
 

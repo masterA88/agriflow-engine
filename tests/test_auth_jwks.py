@@ -242,9 +242,10 @@ class TestB_JwksRejections:
                 _verify(mint(key, kid, alg, aud="another-service"))
 
     def test_hs256_token_is_rejected_in_asymmetric_mode(self, monkeypatch, ec_setup):
-        # The algorithm-confusion attack: sign with HS256 using the PUBLIC key
-        # as the shared secret. Only works if the verifier accepts HS256 while
-        # in asymmetric mode. auth.py restricts algorithms to RS256/ES256.
+        # The verifier must reject an HS256 header when the matching JWK is
+        # asymmetric. Current PyJWT correctly refuses to use a serialized JWK
+        # itself as an HMAC key, so use an arbitrary attacker-controlled secret
+        # to exercise the verifier's algorithm allow-list instead.
         _, jwk, kid, _ = ec_setup
         with JwksServer({"keys": [jwk]}) as server:
             monkeypatch.setenv("SUPABASE_URL", server.url)
@@ -253,7 +254,8 @@ class TestB_JwksRejections:
             forged = jwt.encode(
                 {"sub": SUB, "aud": "authenticated",
                  "iat": now, "exp": now + timedelta(hours=1)},
-                json.dumps(jwk), algorithm="HS256", headers={"kid": kid},
+                b"attacker-controlled-hs256-secret-at-least-32-bytes",
+                algorithm="HS256", headers={"kid": kid},
             )
             with pytest.raises(Exception):
                 _verify(forged)

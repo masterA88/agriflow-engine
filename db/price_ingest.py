@@ -1,49 +1,32 @@
-"""
-db/price_ingest.py — Offline vendor loader + Postgres ingest for PIHPS price history.
+"""Offline price-history loading and optional Postgres ingestion for AgriFlow.
 
-Three public functions:
+The legacy :func:`load_price_history_csvs` function intentionally remains PIHPS-only
+and returns its original four-field row contract. New integrations must explicitly
+use :func:`load_source_price_history_csvs` and :func:`select_active_prices`:
 
-    load_price_history_csvs(directory) -> list[dict]
-        Read all *_cleaned.csv files from the vendored sample_data/price_history/
-        directory.  Returns a list of normalised row dicts:
-            {"date": datetime.date, "city_id": str, "commodity_code": str,
-             "price_per_kg": float}
-        Applies commodity_code normalisation (see COMMODITY_MAP below).
-        Safe for offline/demo use — no network calls.
-
-    ingest_to_postgres(rows, db_url) -> int
-        Upsert rows into the price_history table.
-        CODE-COMPLETE but GATED: raises RuntimeError unless the caller explicitly
-        passes db_url.  Never called automatically.
-        Returns the number of rows upserted.
-
-    latest_prices(rows) -> dict[(city_id, commodity_code), price_per_kg]
-        Given the list returned by load_price_history_csvs(), return a dict of
-        the most-recent observed price per (city_id, commodity_code) pair.
-        Used by the engine to replace synthetic Tier-1 prices with real data.
-
-Commodity mapping rationale (documented in sample_data/price_history/SOURCE.md):
-    cabe_rawit       -> cabai_rawit   (BI spelling normalisation)
-    beras_medium_1   -> beras_medium  (PIHPS sub-grade → canonical)
-    beras_medium_2   -> beras_medium  (PIHPS sub-grade → canonical)
-    beras_super_1    -> beras_premium (PIHPS sub-grade → canonical)
-    beras_super_2    -> beras_premium (PIHPS sub-grade → canonical)
-
-When two sub-grades map to the same canonical code for the same (date, city_id),
-their prices are averaged before the row is returned.  This preserves the UNIQUE
-(date, city_id, commodity_code) constraint of the price_history table.
+* PIHPS `*_cleaned.csv` files and Siskaperbapo `*_jatim.csv` files are read separately.
+* Every source record retains `data_source` provenance.
+* PIHPS sub-grades may be averaged within PIHPS after commodity normalisation.
+* A valid Siskaperbapo district median wins only for the identical
+  `(date, city_id, commodity_code)` key; PIHPS is the fallback.
+* The two sources are never averaged together.
 """
 
 from __future__ import annotations
 
 import csv
 import datetime
+import math
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, Iterable, List, Tuple
+
+PIHPS_SOURCE = "PIHPS"
+SISKAPERBAPO_SOURCE = "SISKAPERBAPO"
+_REQUIRED_COLUMNS = frozenset({"date", "city_id", "commodity_code", "price_per_kg"})
 
 # ---------------------------------------------------------------------------
 # Commodity code normalisation table
-# Keys:   commodity_code values as they appear in Chelsea's CSV files
+# Keys:   commodity_code values as they appear in PIHPS/Siskaperbapo CSV files
 # Values: AgriFlow canonical codes (must match commodity.code in schema.sql)
 # ---------------------------------------------------------------------------
 COMMODITY_MAP: Dict[str, str] = {
@@ -52,9 +35,9 @@ COMMODITY_MAP: Dict[str, str] = {
     "bawang_putih": "bawang_putih",
     "daging_ayam":  "daging_ayam",
     "telur_ayam":   "telur_ayam",
-    # Spelling normalisation: Chelsea uses Indonesian colloquial 'cabe', engine uses BI 'cabai'
+    # Spelling normalisation: source uses Indonesian colloquial 'cabe', engine uses BI 'cabai'
     "cabe_rawit":   "cabai_rawit",
-    # Rice grade aggregation: PIHPS sub-grades → AgriFlow canonical grades
+    # Rice grade aggregation: source sub-grades → AgriFlow canonical grades
     "beras_medium_1": "beras_medium",
     "beras_medium_2": "beras_medium",
     "beras_super_1":  "beras_premium",
@@ -62,75 +45,193 @@ COMMODITY_MAP: Dict[str, str] = {
 }
 
 # Canonical codes that ENGINE knows about (subset of komoditas_constraints.csv
-# that this dataset covers).  Used for validation.
+# that this dataset covers). Used for validation.
 KNOWN_ENGINE_CODES = frozenset(COMMODITY_MAP.values())
 
 
-def load_price_history_csvs(directory: str | Path) -> List[Dict]:
-    """
-    Read all *_cleaned.csv files from `directory` and return normalised rows.
+def _normalise_row(csv_path: Path, lineno: int, row: Dict[str, str], source: str) -> Dict:
+    """Validate one shared price-history row and attach its trusted source label."""
+    try:
+        raw_code = row["commodity_code"].strip()
+        canonical = COMMODITY_MAP.get(raw_code)
+        if canonical is None:
+            raise ValueError(
+                f"{csv_path.name}:{lineno}: unrecognised commodity_code {raw_code!r} "
+                "— add it to COMMODITY_MAP in db/price_ingest.py"
+            )
+        date_val = datetime.date.fromisoformat(row["date"].strip())
+        city_id = row["city_id"].strip()
+        price = float(row["price_per_kg"].strip())
+    except KeyError as exc:
+        raise ValueError(f"{csv_path.name}:{lineno}: missing required column {exc.args[0]!r}") from exc
+    except ValueError as exc:
+        if str(exc).startswith(f"{csv_path.name}:{lineno}:"):
+            raise
+        raise ValueError(f"{csv_path.name}:{lineno}: invalid date or price") from exc
 
-    Each returned dict has keys:
-        date            datetime.date
-        city_id         str   (e.g. "3509")
-        commodity_code  str   (AgriFlow canonical, after COMMODITY_MAP lookup)
-        price_per_kg    float
+    if not city_id:
+        raise ValueError(f"{csv_path.name}:{lineno}: city_id must not be empty")
+    if not math.isfinite(price) or price <= 0:
+        raise ValueError(f"{csv_path.name}:{lineno}: price_per_kg must be finite and positive")
 
-    When multiple source rows collapse to the same (date, city_id, commodity_code)
-    after normalisation (e.g. beras_medium_1 + beras_medium_2 both map to
-    beras_medium for the same date and city), the prices are averaged.
+    return {
+        "date": date_val,
+        "city_id": city_id,
+        "commodity_code": canonical,
+        "price_per_kg": price,
+        "data_source": source,
+    }
 
-    Raises:
-        FileNotFoundError  if directory does not exist
-        ValueError         if a CSV row has an unrecognised commodity_code
-                           (not in COMMODITY_MAP — strict, to catch schema drift)
+
+def _read_source_file(csv_path: Path, source: str) -> List[Dict]:
+    """Read a single source file using the common four-column CSV contract."""
+    with csv_path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        fieldnames = set(reader.fieldnames or ())
+        missing = sorted(_REQUIRED_COLUMNS - fieldnames)
+        if missing:
+            raise ValueError(f"{csv_path.name}: missing required columns: {', '.join(missing)}")
+        return [
+            _normalise_row(csv_path, lineno, row, source)
+            for lineno, row in enumerate(reader, start=2)
+        ]
+
+
+def _aggregate_pihps(records: Iterable[Dict]) -> List[Dict]:
+    """Average only PIHPS rows that collapse after sub-grade normalisation."""
+    accumulated: Dict[Tuple[datetime.date, str, str], List[float]] = {}
+    for row in records:
+        key = (row["date"], row["city_id"], row["commodity_code"])
+        accumulated.setdefault(key, []).append(row["price_per_kg"])
+
+    result = [
+        {
+            "date": date_val,
+            "city_id": city_id,
+            "commodity_code": commodity_code,
+            "price_per_kg": sum(prices) / len(prices),
+            "data_source": PIHPS_SOURCE,
+        }
+        for (date_val, city_id, commodity_code), prices in accumulated.items()
+    ]
+    result.sort(key=lambda row: (row["commodity_code"], row["city_id"], row["date"]))
+    return result
+
+
+def _assert_unique_siskaperbapo(records: Iterable[Dict]) -> List[Dict]:
+    """Reject duplicate derived district medians instead of masking bad input."""
+    result = list(records)
+    seen: set[Tuple[datetime.date, str, str]] = set()
+    for row in result:
+        key = (row["date"], row["city_id"], row["commodity_code"])
+        if key in seen:
+            raise ValueError(
+                "Duplicate Siskaperbapo record for "
+                f"date={key[0].isoformat()}, city_id={key[1]!r}, commodity_code={key[2]!r}"
+            )
+        seen.add(key)
+    return result
+
+
+def load_source_price_history_csvs(directory: str | Path) -> List[Dict]:
+    """Load PIHPS and Siskaperbapo records with provenance, without precedence.
+
+    PIHPS input is discovered with ``*_cleaned.csv`` and Siskaperbapo derived
+    district-median input with ``*_jatim.csv``. The returned rows always contain
+    ``date``, ``city_id``, ``commodity_code``, ``price_per_kg``, and ``data_source``.
+    Valid records from both sources are retained for comparison. Use
+    :func:`select_active_prices` to apply Siskaperbapo-first precedence.
     """
     directory = Path(directory)
     if not directory.is_dir():
         raise FileNotFoundError(f"Price history directory not found: {directory}")
 
-    csv_files = sorted(directory.glob("*_cleaned.csv"))
-    if not csv_files:
-        raise FileNotFoundError(f"No *_cleaned.csv files found in: {directory}")
-
-    # Accumulate into (date, city_id, commodity_code) -> list[price]
-    # so we can average when sub-grades collapse.
-    accumulated: Dict[Tuple[datetime.date, str, str], List[float]] = {}
-
-    for csv_path in csv_files:
-        with csv_path.open(newline="", encoding="utf-8") as fh:
-            reader = csv.DictReader(fh)
-            for lineno, row in enumerate(reader, start=2):  # 1-indexed, header = line 1
-                raw_code = row["commodity_code"].strip()
-                canonical = COMMODITY_MAP.get(raw_code)
-                if canonical is None:
-                    raise ValueError(
-                        f"{csv_path.name}:{lineno}: unrecognised commodity_code "
-                        f"{raw_code!r} — add it to COMMODITY_MAP in db/price_ingest.py"
-                    )
-
-                date_val = datetime.date.fromisoformat(row["date"].strip())
-                city_id = row["city_id"].strip()
-                price = float(row["price_per_kg"].strip())
-
-                key = (date_val, city_id, canonical)
-                accumulated.setdefault(key, []).append(price)
-
-    # Collapse to one row per key (average when multiple sub-grades present)
-    rows: List[Dict] = []
-    for (date_val, city_id, canonical), prices in accumulated.items():
-        rows.append(
-            {
-                "date": date_val,
-                "city_id": city_id,
-                "commodity_code": canonical,
-                "price_per_kg": sum(prices) / len(prices),
-            }
+    pihps_files = sorted(directory.glob("*_cleaned.csv"))
+    siskaperbapo_files = sorted(directory.glob("*_jatim.csv"))
+    if not pihps_files and not siskaperbapo_files:
+        raise FileNotFoundError(
+            "No recognised PIHPS *_cleaned.csv or Siskaperbapo *_jatim.csv files "
+            f"found in: {directory}"
         )
 
-    # Sort for deterministic output (and nicer test assertions)
-    rows.sort(key=lambda r: (r["commodity_code"], r["city_id"], r["date"]))
+    pihps_records = _aggregate_pihps(
+        row
+        for csv_path in pihps_files
+        for row in _read_source_file(csv_path, PIHPS_SOURCE)
+    )
+    siskaperbapo_records = _assert_unique_siskaperbapo(
+        row
+        for csv_path in siskaperbapo_files
+        for row in _read_source_file(csv_path, SISKAPERBAPO_SOURCE)
+    )
+    rows = pihps_records + siskaperbapo_records
+    rows.sort(
+        key=lambda row: (
+            row["commodity_code"], row["city_id"], row["date"], row["data_source"]
+        )
+    )
     return rows
+
+
+def select_active_prices(source_records: Iterable[Dict]) -> List[Dict]:
+    """Select Siskaperbapo first and PIHPS only as exact-key fallback.
+
+    The input must contain source-aware records from
+    :func:`load_source_price_history_csvs`. This function retains no hidden state
+    and never averages records belonging to different sources.
+    """
+    selected: Dict[Tuple[datetime.date, str, str], Dict] = {}
+    seen_source_keys: set[Tuple[datetime.date, str, str, str]] = set()
+    for row in source_records:
+        source = row.get("data_source")
+        if source not in {PIHPS_SOURCE, SISKAPERBAPO_SOURCE}:
+            raise ValueError(f"Unsupported data_source {source!r}")
+        key = (row["date"], row["city_id"], row["commodity_code"])
+        source_key = (*key, source)
+        if source_key in seen_source_keys:
+            raise ValueError(
+                "Duplicate source record for "
+                f"date={key[0].isoformat()}, city_id={key[1]!r}, "
+                f"commodity_code={key[2]!r}, data_source={source!r}"
+            )
+        seen_source_keys.add(source_key)
+        if source == SISKAPERBAPO_SOURCE or key not in selected:
+            selected[key] = row
+
+    rows = list(selected.values())
+    rows.sort(key=lambda row: (row["commodity_code"], row["city_id"], row["date"]))
+    return rows
+
+
+def load_price_history_csvs(directory: str | Path) -> List[Dict]:
+    """Load legacy PIHPS ``*_cleaned.csv`` data using the original four-field contract.
+
+    This compatibility API intentionally ignores ``*_jatim.csv`` Siskaperbapo
+    files. New callers that need source provenance and precedence must use
+    :func:`load_source_price_history_csvs` followed by :func:`select_active_prices`.
+    """
+    directory = Path(directory)
+    if not directory.is_dir():
+        raise FileNotFoundError(f"Price history directory not found: {directory}")
+
+    pihps_files = sorted(directory.glob("*_cleaned.csv"))
+    if not pihps_files:
+        raise FileNotFoundError(f"No *_cleaned.csv files found in: {directory}")
+
+    pihps_rows = _aggregate_pihps(
+        row
+        for csv_path in pihps_files
+        for row in _read_source_file(csv_path, PIHPS_SOURCE)
+    )
+    return [
+        {
+            "date": row["date"],
+            "city_id": row["city_id"],
+            "commodity_code": row["commodity_code"],
+            "price_per_kg": row["price_per_kg"],
+        }
+        for row in pihps_rows
+    ]
 
 
 def ingest_to_postgres(rows: List[Dict], db_url: str) -> int:

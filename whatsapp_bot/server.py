@@ -1,19 +1,19 @@
-"""
-FastAPI app — Twilio WhatsApp webhook + health endpoint.
+﻿"""
+FastAPI app â€” Twilio WhatsApp webhook + health endpoint.
 
 Endpoints:
-    GET  /health              — liveness check, returns engine + bot status
-    POST /whatsapp            — Twilio webhook (form-encoded); returns TwiML XML
-    POST /chat                — debug JSON endpoint (no Twilio); useful for curl
+    GET  /health              â€” liveness check, returns engine + bot status
+    POST /whatsapp            â€” Twilio webhook (form-encoded); returns TwiML XML
+    POST /chat                â€” debug JSON endpoint (no Twilio); useful for curl
 
     Dashboard API (v1.1):
     GET  /api/v1/commodities, /kabupaten, /surplus-deficit, /matches
-    GET  /api/v1/matches/explain   — ranked suppliers for one deficit, why chosen
+    GET  /api/v1/matches/explain   â€” ranked suppliers for one deficit, why chosen
     GET  /api/v1/forecast, /anomalies (city accepts id or name)
-    GET  /api/v1/meta              — "data per" provenance for every panel
-    GET  /api/v1/summary           — KPIs computed from the engine run
-    GET  /api/v1/report.csv        — downloadable match list
-    POST /api/v1/simulate          — what-if scenarios (presets: semeru, ramadan, ...)
+    GET  /api/v1/meta              â€” "data per" provenance for every panel
+    GET  /api/v1/summary           â€” KPIs computed from the engine run
+    GET  /api/v1/report.csv        â€” downloadable match list
+    POST /api/v1/simulate          â€” what-if scenarios (presets: semeru, ramadan, ...)
     GET  /api/v1/simulate/presets
 
     Env knobs added in v1.1:
@@ -139,18 +139,18 @@ def _load_data_backend() -> dict:
     """
     Select the data backend via the DATA_BACKEND env var.
 
-    DATA_BACKEND=csv      (default) — REAL BPS Jawa Timur 2022 data from
+    DATA_BACKEND=csv      (default) â€” REAL BPS Jawa Timur 2022 data from
                                       sample_data/surplus_deficit_real.csv.
                                       Offline-safe.
-    DATA_BACKEND=demo                — the synthetic 19-commodity fixture. Test
+    DATA_BACKEND=demo                â€” the synthetic 19-commodity fixture. Test
                                       data only; never serve it to users.
-    DATA_BACKEND=postgres            — load from Supabase/Postgres via db.db_loader.
+    DATA_BACKEND=postgres            â€” load from Supabase/Postgres via db.db_loader.
 
     WHY THE DEFAULT IS REAL DATA
     ----------------------------
     This used to call load_all_sample_data(), whose default file is the
-    synthetic surplus_deficit.csv. Every served response — dashboard map,
-    WhatsApp reply, API — was therefore built on invented numbers while the
+    synthetic surplus_deficit.csv. Every served response â€” dashboard map,
+    WhatsApp reply, API â€” was therefore built on invented numbers while the
     real BPS-derived file sat unused beside it.
 
     That also caused a visible failure. The synthetic file prices rice demand
@@ -202,7 +202,7 @@ METERED_INTENTS = frozenset({
 
 
 # =============================================================================
-# APP STATE — loaded once at startup
+# APP STATE â€” loaded once at startup
 # =============================================================================
 
 class AppState:
@@ -239,6 +239,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000", "http://127.0.0.1:3000",
+        "http://localhost:3001", "http://127.0.0.1:3001",
     ],
     allow_origin_regex=r"https://.*\.(vercel\.app|hf\.space)",
     allow_methods=["GET", "POST", "OPTIONS"],
@@ -252,7 +253,7 @@ request_log.install(app)
 
 
 # =============================================================================
-# CORE — pure function (no Twilio coupling), reused by /whatsapp and /chat
+# CORE â€” pure function (no Twilio coupling), reused by /whatsapp and /chat
 # =============================================================================
 
 def _ensure_state() -> None:
@@ -267,10 +268,10 @@ def _ensure_state() -> None:
 
 def handle_message(message: str, sender: str | None = None) -> str:
     """
-    Pure pipeline: text in → text out. Easy to unit-test.
+    Pure pipeline: text in â†’ text out. Easy to unit-test.
 
     `sender` is the raw WhatsApp identifier ('whatsapp:+62...'). When it is
-    absent the message is treated as anonymous and no quota is applied — that
+    absent the message is treated as anonymous and no quota is applied â€” that
     is the debug path (/chat, CLI). The Twilio webhook always passes a sender,
     so real users are always metered.
 
@@ -287,7 +288,7 @@ def handle_message(message: str, sender: str | None = None) -> str:
 
     phone_hash = hash_phone(sender) if sender else ""
 
-    # 1. Commands — free, and available even at zero remaining quota.
+    # 1. Commands â€” free, and available even at zero remaining quota.
     #    Skipped entirely when the paywall is off: with no quota there is no
     #    billing surface, and a STATUS reply quoting a limit nobody enforces
     #    would be a lie.
@@ -316,7 +317,7 @@ def handle_message(message: str, sender: str | None = None) -> str:
     reply = dispatch(intent, state.data, state.gemini)
 
     # 3. Bill only a query we actually answered. Asking the user to rephrase
-    #    is free, and so is telling them a commodity is outside our data —
+    #    is free, and so is telling them a commodity is outside our data â€”
     #    neither delivered the thing they asked for.
     if metered and not reply.startswith((MISSING_SLOT_PREFIX, OUT_OF_COVERAGE_PREFIX)):
         state.subs.consume(phone_hash)
@@ -370,11 +371,11 @@ async def whatsapp_webhook(
 ) -> Response:
     """
     Twilio WhatsApp webhook entrypoint.
-    Body  — message text from user
-    From  — 'whatsapp:+62xxx' sender
+    Body  â€” message text from user
+    From  â€” 'whatsapp:+62xxx' sender
     Returns TwiML XML that Twilio will send back to the user.
     """
-    # Optional signature validation — enable once webhook is reachable from Twilio
+    # Optional signature validation â€” enable once webhook is reachable from Twilio
     if settings.twilio_validate_signature and not settings.mock_mode:
         form = await request.form()
         url = str(request.url)
@@ -391,7 +392,7 @@ async def whatsapp_webhook(
 @app.post("/chat")
 async def chat_debug(payload: Dict[str, str]) -> JSONResponse:
     """
-    Debug endpoint — bypasses Twilio. Useful for local curl testing:
+    Debug endpoint â€” bypasses Twilio. Useful for local curl testing:
         curl -X POST localhost:8000/chat -H 'Content-Type: application/json' \\
              -d '{"message": "Harga cabai di Malang"}'
 
@@ -399,7 +400,7 @@ async def chat_debug(payload: Dict[str, str]) -> JSONResponse:
              -d '{"message": "Harga cabai di Malang", "from": "whatsapp:+628123"}'
 
     WITHOUT "from" this endpoint is unmetered, so it bypasses the paywall by
-    design. Set DEBUG_CHAT_ENABLED=false in any deployment where that matters —
+    design. Set DEBUG_CHAT_ENABLED=false in any deployment where that matters â€”
     the Twilio webhook is the metered path, this one is a development tool.
     """
     if not settings.debug_chat_enabled:
@@ -412,7 +413,7 @@ async def chat_debug(payload: Dict[str, str]) -> JSONResponse:
 
 
 # =============================================================================
-# BILLING — upgrade flow
+# BILLING â€” upgrade flow
 #
 # The payment page and confirm endpoint form the gateway seam. In mock mode
 # they are self-contained; to go live, point PUBLIC_BASE_URL's payment link at
@@ -452,7 +453,7 @@ async def billing_pay_page(order_id: str) -> Response:
             f"<form method='post' action='/billing/confirm'>"
             f"<input type='hidden' name='order_id' value='{order.order_id}'>"
             f"<button type='submit'>Bayar {amount} (demo)</button></form>"
-            f"<p class=note>Mode demo — tidak ada transaksi sungguhan.</p>"
+            f"<p class=note>Mode demo â€” tidak ada transaksi sungguhan.</p>"
         )
     else:
         body = "<p class=note>Menunggu pengalihan ke penyedia pembayaran.</p>"
@@ -476,7 +477,7 @@ async def billing_pay_page(order_id: str) -> Response:
 @app.post("/billing/confirm")
 async def billing_confirm(request: Request) -> Response:
     """
-    Settle an order and grant PRO — the gateway webhook seam.
+    Settle an order and grant PRO â€” the gateway webhook seam.
 
     Accepts either form-encoded (the mock page) or JSON (a webhook). A real
     integration MUST verify the provider's signature here before trusting the
@@ -552,7 +553,7 @@ async def billing_status(
 
 
 # =============================================================================
-# DASHBOARD API — /api/v1/* (consumed by Next.js dashboard)
+# DASHBOARD API â€” /api/v1/* (consumed by Next.js dashboard)
 # =============================================================================
 
 def _ensure_engine() -> EngineData:
@@ -565,7 +566,7 @@ def _ensure_engine() -> EngineData:
 #
 # run_matching() is a pure function of the data loaded at startup, so re-running
 # it per request was burning ~1.5 ms of CPU to recompute a byte-identical
-# answer — about 60x the cost of everything else in the request and the binding
+# answer â€” about 60x the cost of everything else in the request and the binding
 # constraint on how many concurrent users one worker can serve.
 #
 # The cache is keyed on the EngineData object itself (not id(), which a garbage
@@ -679,7 +680,7 @@ async def api_kabupaten() -> JSONResponse:
 async def api_surplus_deficit(
     commodity: str = Query(..., description="Commodity code, e.g. cabai_merah"),
 ) -> JSONResponse:
-    """Per-kab surplus/deficit volume for one commodity — powers the map bubbles."""
+    """Per-kab surplus/deficit volume for one commodity â€” powers the map bubbles."""
     data = _ensure_engine()
     if commodity not in data.komoditas:
         raise HTTPException(status_code=404, detail=f"unknown commodity: {commodity}")
@@ -775,9 +776,9 @@ def _explain_match(m) -> List[str]:
     out: List[str] = []
     b = m.breakdown
     out.append(
-        f"Skor {m.final_score:.0f} = base {m.base_score:.0f} × equity "
+        f"Skor {m.final_score:.0f} = base {m.base_score:.0f} Ã— equity "
         f"{m.equity_multiplier:.2f} (IPM {m.deficit.kabupaten.nama} {m.deficit.kabupaten.ipm:.1f})"
-        + (f" × segmen {m.segment_multiplier:.2f}" if m.segment_multiplier != 1.0 else "")
+        + (f" Ã— segmen {m.segment_multiplier:.2f}" if m.segment_multiplier != 1.0 else "")
     )
     out.append(f"Jarak jalan {m.distance_km:.0f} km (skor jarak {b.distance:.2f})")
     out.append(f"Volume menutup {b.volume * 100:.0f}% kebutuhan {m.deficit.kabupaten.nama}")
@@ -848,11 +849,19 @@ def _load_forecasts() -> list:
 
 @functools.lru_cache(maxsize=1)
 def _load_anomalies() -> list:
-    """Load anomalies_all.json once and cache in-process."""
+    """Load anomalies_all.json once and cache in-process.
+
+    The source-aware scan (schema v2+) stores the flat event records under an
+    "events" key alongside series_statuses; older scans were a bare list.
+    Return the event list either way so callers can treat it as a list.
+    """
     if not os.path.exists(_ANOMALIES_PATH):
         return []
     with open(_ANOMALIES_PATH, encoding="utf-8") as fh:
-        return _json.load(fh)
+        data = _json.load(fh)
+    if isinstance(data, dict):
+        return data.get("events", [])
+    return data
 
 
 @app.get("/api/v1/forecast")
@@ -862,7 +871,7 @@ async def api_forecast(
     city: str = Query(..., description="IHK city_id, e.g. 3578 (Surabaya)"),
 ) -> JSONResponse:
     """
-    30-day price forecast (point + P10/P90) for one commodity × city pair.
+    30-day price forecast (point + P10/P90) for one commodity Ã— city pair.
 
     Data is precomputed offline (seasonal-naive baseline unless TimesFM was
     available at precompute time).  The 'method' field in the response tells
@@ -929,7 +938,7 @@ async def api_anomalies(
         commodity  optional commodity code filter
         city       optional IHK city_id filter
         limit      max records (default 50, max 500)
-        since      ISO date — only return anomalies on or after this date
+        since      ISO date â€” only return anomalies on or after this date
 
     Response schema:
         count     int
@@ -977,7 +986,7 @@ async def api_anomalies(
 
 
 # =============================================================================
-# v1.1 — META, SUMMARY, REPORT, EXPLAIN, SIMULATE
+# v1.1 â€” META, SUMMARY, REPORT, EXPLAIN, SIMULATE
 # =============================================================================
 
 @_functools.lru_cache(maxsize=1)
@@ -1392,9 +1401,19 @@ async def api_simulate_presets() -> JSONResponse:
 @_functools.lru_cache(maxsize=1)
 def _price_series_map():
     """(commodity_code, city_id) -> [(date, price)] from the vendored PIHPS files."""
-    from analysis.price_anomaly import _load_all_rows
+    from collections import defaultdict
+    from db.price_ingest import load_source_price_history_csvs, select_active_prices
     try:
-        return _load_all_rows(_PRICE_HISTORY_DIR)
+        source_records = load_source_price_history_csvs(_PRICE_HISTORY_DIR)
+        active_records  = select_active_prices(source_records)
+        series_map = defaultdict(list)
+        for record in active_records:
+
+            key = (record["commodity_code"], str(record["city_id"]))
+            series_map[key].append((record["date"], float(record["price_per_kg"])))
+        for key, pts in series_map.items():
+            pts.sort(key=lambda x: x[0])
+        return dict(series_map)
     except FileNotFoundError:
         return {}
 
@@ -1425,7 +1444,7 @@ async def api_price_history(
         "commodity_code": commodity,
         "city_id": city_id,
         "city_name": data.kabupaten[city_id].nama if city_id in data.kabupaten else city_id,
-        "source": "PIHPS (vendored, sample_data/price_history)",
+        "source": "SISKAPERBAPO-first + PIHPS (sample_data/price_history)",
         "history_end_date": series[-1][0].isoformat(),
         "n": len(tail),
         "points": [{"date": d.isoformat(), "price": round(float(p), 2)} for d, p in tail],
