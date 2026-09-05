@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-04T12:12:36.714169+00:00",
+  "generated_at": "2026-09-05T11:20:05.219187+00:00",
   "method": "seasonal_naive_baseline",
   "interval_method": "split_conformal_rolling_origin",
   "horizon_days": 30,
