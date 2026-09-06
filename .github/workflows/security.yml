@@ -1,0 +1,116 @@
+name: security
+
+# Dependency and static-analysis gates. Runs on every push and PR, weekly on
+# a schedule so a new advisory against a pinned version surfaces even when
+# nobody is committing.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 3 * * 1"   # Monday 10:00 WIB
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pip-audit:
+    name: pip-audit (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pip-audit
+      - name: Audit the installed environment
+        run: pip-audit --strict --desc on
+
+  npm-audit:
+    name: npm audit (dashboard)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - run: npm ci --ignore-scripts
+      - name: Fail on high or critical advisories in shipped dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+  secrets:
+    name: gitleaks (committed secrets)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, javascript-typescript]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:${{ matrix.language }}
+
+  posture:
+    name: production posture boots
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Demo defaults must be refused under APP_ENV=production
+        env:
+          APP_ENV: production
+        run: |
+          python - <<'EOF'
+          from whatsapp_bot import security
+          from whatsapp_bot.config import settings
+          try:
+              security.check_production_posture(settings)
+          except security.InsecureProductionConfig as e:
+              print("refused as expected:", e)
+          else:
+              raise SystemExit("production posture check let demo defaults through")
+          EOF
+      - name: Security regression tests
+        run: pytest -q tests/test_security_hardening.py tests/test_auth.py tests/test_auth_jwks.py

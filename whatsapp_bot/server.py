@@ -49,9 +49,11 @@ import csv as _csv
 import dataclasses
 import datetime as _dt
 import glob as _glob
+import html as _html
 import io as _io
+import re as _re
 import subprocess as _subprocess
-from typing import List, Optional, Set, Tuple
+from typing import Annotated, List, Optional, Set, Tuple
 
 from pydantic import BaseModel, Field
 
@@ -63,7 +65,7 @@ from matching_engine.allocation import equity_multiplier_value, segment_multipli
 from analysis.anomaly_gate import load_anomaly_keys, latest_anomaly_date
 from sample_data.loader import load_all_sample_data as _load_csv
 from sample_data.loader import load_real_data as _load_real
-from whatsapp_bot import request_log
+from whatsapp_bot import request_log, security
 
 # Precomputed data paths (resolved relative to project root so they work
 # both locally and inside the Docker container)
@@ -216,6 +218,9 @@ state = AppState()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Refuses to come up in APP_ENV=production while a demo default is still
+    # active; logs the same findings as warnings in development.
+    security.check_production_posture(settings)
     state.data = EngineData(_load_data_backend())
     state.gemini = GeminiClient()
     state.subs = SubscriptionService()
@@ -223,32 +228,61 @@ async def lifespan(app: FastAPI):
     # No teardown needed
 
 
+# Swagger UI and the OpenAPI schema are a map of the attack surface. They
+# stay on in development and go dark in production unless API_DOCS_ENABLED
+# says otherwise (see config.Settings.api_docs_enabled).
 app = FastAPI(
     title="AgriFlow WhatsApp Bot",
     version="0.1.0",
     description="Twilio webhook + Gemini RAG over the AgriFlow matching engine.",
     lifespan=lifespan,
+    docs_url="/docs" if settings.api_docs_enabled else None,
+    redoc_url="/redoc" if settings.api_docs_enabled else None,
+    openapi_url="/openapi.json" if settings.api_docs_enabled else None,
 )
 
-# CORS so the Next.js dashboard can hit /api/v1/* from dev (localhost)
-# and from any *.vercel.app preview / production URL. Regex covers branch
-# previews like agriflow-git-feature-x.vercel.app without re-deploys.
-# Also allows *.hf.space (Hugging Face Spaces) for direct curl/browser testing
-# against the API itself when it's hosted there.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+
+def _cors_config() -> Dict[str, Any]:
+    """
+    Browser origins allowed to call /api/v1/*.
+
+    The previous regex admitted every *.vercel.app and *.hf.space host, which
+    is every Vercel and Hugging Face customer. The default is now the
+    production dashboard plus this project's own preview URLs; anything else
+    is opt-in through CORS_ALLOWED_ORIGINS (comma separated) and
+    CORS_ALLOWED_ORIGIN_REGEX. Credentials are never allowed, so the browser
+    only ever attaches the Authorization header the dashboard's own JS sets.
+    """
+    origins = [
         "http://localhost:3000", "http://127.0.0.1:3000",
-    ],
-    allow_origin_regex=r"https://.*\.(vercel\.app|hf\.space)",
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
-)
+        "https://agriflow-engine.vercel.app",
+    ]
+    extra = os.environ.get("CORS_ALLOWED_ORIGINS", "")
+    origins += [o.strip().rstrip("/") for o in extra.split(",") if o.strip()]
+    regex = os.environ.get(
+        "CORS_ALLOWED_ORIGIN_REGEX",
+        r"^https://agriflow-engine(-[a-z0-9-]+)?\.vercel\.app$",
+    )
+    return {
+        "allow_origins": origins,
+        "allow_origin_regex": regex or None,
+        "allow_methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Authorization", "Content-Type"],
+        "allow_credentials": False,
+        "max_age": 600,
+    }
+
+
+app.add_middleware(CORSMiddleware, **_cors_config())
 
 # One JSON line per request on stderr, plus an X-Request-ID header so a user
 # report ties back to an exact log line. Set AGRIFLOW_LOG_FILE to also archive
 # the run to disk. Never logs phone numbers or request bodies.
 request_log.install(app)
+
+# Security headers, request body cap, and the per-IP rate limiter. Added after
+# request_log so they wrap it and stamp even the 413/429 short-circuits.
+security.install(app)
 
 
 # =============================================================================
@@ -331,6 +365,16 @@ def handle_message(message: str, sender: str | None = None) -> str:
 @app.get("/health")
 async def health() -> Dict[str, Any]:
     data_loaded = state.data is not None
+    if settings.is_production:
+        # Liveness only. The configuration posture below (auth on or off,
+        # salt present, mock flags) is exactly what an attacker would want to
+        # read first, so production answers with the minimum an uptime probe
+        # needs. Operators read the posture from the startup log instead.
+        return {
+            "status": "ok",
+            "version": ENGINE_VERSION,
+            "data_loaded": data_loaded,
+        }
     return {
         "status": "ok",
         "version": ENGINE_VERSION,
@@ -384,6 +428,8 @@ async def whatsapp_webhook(
         ):
             raise HTTPException(status_code=403, detail="Invalid Twilio signature")
 
+    if len(Body) > settings.max_message_chars:
+        raise HTTPException(status_code=413, detail="message too long")
     reply = handle_message(Body, sender=From)
     return Response(content=make_twiml_response(reply), media_type="application/xml")
 
@@ -404,10 +450,17 @@ async def chat_debug(payload: Dict[str, str]) -> JSONResponse:
     """
     if not settings.debug_chat_enabled:
         raise HTTPException(status_code=404, detail="Not found")
-    message = payload.get("message", "").strip()
+    message = str(payload.get("message", "") or "").strip()
     if not message:
         raise HTTPException(status_code=400, detail="message field required")
-    reply = handle_message(message, sender=payload.get("from"))
+    if len(message) > settings.max_message_chars:
+        raise HTTPException(status_code=413, detail="message too long")
+    # The caller-supplied sender lets a test exercise the quota flow for an
+    # arbitrary number. In production that is impersonation (STATUS, UPGRADE
+    # and BAYAR run as whoever you name), so the field is ignored there and
+    # the web chat is always anonymous.
+    sender = None if settings.is_production else payload.get("from")
+    reply = handle_message(message, sender=sender)
     return JSONResponse({"reply": reply})
 
 
@@ -426,6 +479,9 @@ def _ensure_subs() -> SubscriptionService:
     return state.subs
 
 
+_ORDER_ID_RE = _re.compile(r"^AF-[0-9A-Fa-f]{8}$")
+
+
 @app.get("/billing/pay/{order_id}")
 async def billing_pay_page(order_id: str) -> Response:
     """
@@ -436,7 +492,8 @@ async def billing_pay_page(order_id: str) -> Response:
     checkout for this order.
     """
     subs = _ensure_subs()
-    order = subs.store.get_order(order_id)
+    # Order ids are minted as AF-<8 hex>. Anything else never hits the store.
+    order = subs.store.get_order(order_id) if _ORDER_ID_RE.match(order_id) else None
     if order is None:
         return Response(
             content="<h1>Pesanan tidak ditemukan</h1>"
@@ -445,12 +502,15 @@ async def billing_pay_page(order_id: str) -> Response:
         )
 
     amount = f"Rp {order.amount_idr:,.0f}".replace(",", ".")
+    # Escaped even though the id is store-generated: the page is the only
+    # HTML this API renders and the habit costs nothing.
+    order_id = _html.escape(order.order_id)
     if order.status == "PAID":
         body = "<p class=ok>Pesanan ini sudah dibayar. Akun Anda sudah PRO.</p>"
     elif billing.billing_mock_enabled():
         body = (
             f"<form method='post' action='/billing/confirm'>"
-            f"<input type='hidden' name='order_id' value='{order.order_id}'>"
+            f"<input type='hidden' name='order_id' value='{order_id}'>"
             f"<button type='submit'>Bayar {amount} (demo)</button></form>"
             f"<p class=note>Mode demo — tidak ada transaksi sungguhan.</p>"
         )
@@ -466,7 +526,7 @@ async def billing_pay_page(order_id: str) -> Response:
             "padding:0 1rem;line-height:1.6}button{background:#15803d;color:#fff;border:0;"
             "padding:.8rem 1.4rem;border-radius:.5rem;font-size:1rem;cursor:pointer;width:100%}"
             ".note{color:#666;font-size:.9rem}.ok{color:#15803d;font-weight:600}</style>"
-            f"<h1>AgriFlow PRO</h1><p>Pesanan <b>{order.order_id}</b><br>"
+            f"<h1>AgriFlow PRO</h1><p>Pesanan <b>{order_id}</b><br>"
             f"Jumlah <b>{amount}</b> untuk 30 hari</p>{body}"
         ),
         media_type="text/html",
@@ -494,6 +554,8 @@ async def billing_confirm(request: Request) -> Response:
 
     if not order_id:
         raise HTTPException(status_code=400, detail="order_id required")
+    if not _ORDER_ID_RE.match(order_id):
+        raise HTTPException(status_code=404, detail="unknown order")
 
     if not billing.billing_mock_enabled():
         raise HTTPException(
@@ -504,7 +566,7 @@ async def billing_confirm(request: Request) -> Response:
 
     account = subs.confirm_payment(order_id)
     if account is None:
-        raise HTTPException(status_code=404, detail=f"unknown order: {order_id}")
+        raise HTTPException(status_code=404, detail="unknown order")
 
     if "application/json" in ctype:
         return JSONResponse({
@@ -1114,6 +1176,21 @@ async def api_summary(
     })
 
 
+def _csv_safe_cell(value: Any) -> Any:
+    """
+    Neutralise spreadsheet formula injection. A cell that starts with =, +, -
+    or @ is executed by Excel and LibreOffice when the file is opened; a
+    leading apostrophe makes it display as text. Numbers pass through as-is.
+    """
+    if isinstance(value, str) and value[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + value
+    return value
+
+
+def _csv_safe_row(row: List[Any]) -> List[Any]:
+    return [_csv_safe_cell(v) for v in row]
+
+
 _REPORT_COLUMNS = [
     "commodity_code", "commodity_nama", "surplus_kab_id", "surplus_kab", "deficit_kab_id",
     "deficit_kab", "deficit_ipm", "matched_volume_tons", "distance_km", "surplus_price_idr_kg",
@@ -1137,7 +1214,7 @@ async def api_report_csv(
         if commodity and m.deficit.commodity.code != commodity:
             continue
         spread = m.deficit.price_per_kg - m.surplus.price_per_kg
-        w.writerow([
+        w.writerow(_csv_safe_row([
             m.surplus.commodity.code, m.surplus.commodity.nama,
             m.surplus.kabupaten.id, m.surplus.kabupaten.nama,
             m.deficit.kabupaten.id, m.deficit.kabupaten.nama, m.deficit.kabupaten.ipm,
@@ -1146,7 +1223,7 @@ async def api_report_csv(
             round(max(0.0, spread) * m.matched_volume_tons * 1000, 0),
             round(m.base_score, 2), m.equity_multiplier, round(m.final_score, 2),
             m.confidence.value, "|".join(m.flags),
-        ])
+        ]))
     stamp = (_price_history_end() or "data").replace("-", "")
     name = f"agriflow_matches_{commodity or 'all'}_{stamp}.csv"
     return Response(
@@ -1254,18 +1331,24 @@ SCENARIO_PRESETS: Dict[str, Dict[str, Any]] = {
 }
 
 
+# Every field bounded: the endpoint re-runs the LP solver per call, so an
+# unbounded list or a bbm_pct of 1e308 (infinite fuel cost) is a cheap way to
+# stall a worker or crash the solver.
+_KabList = List[Annotated[str, Field(min_length=1, max_length=16)]]
+
+
 class SimulateRequest(BaseModel):
-    presets: List[str] = Field(default_factory=list)
-    unreachable_kab: List[str] = Field(default_factory=list)
-    humanitarian_kab: List[str] = Field(default_factory=list)
-    blackout_kab: List[str] = Field(default_factory=list)
+    presets: List[Annotated[str, Field(max_length=32)]] = Field(default_factory=list, max_length=10)
+    unreachable_kab: _KabList = Field(default_factory=list, max_length=100)
+    humanitarian_kab: _KabList = Field(default_factory=list, max_length=100)
+    blackout_kab: _KabList = Field(default_factory=list, max_length=100)
     ramadan: bool = False
-    bbm_pct: float = 0.0
+    bbm_pct: float = Field(0.0, ge=-90.0, le=1000.0)
     import_policy: bool = False
-    commodity: Optional[str] = None
-    reference_date: Optional[str] = None
-    allocator: Optional[str] = None
-    limit: int = 50
+    commodity: Optional[str] = Field(None, max_length=64)
+    reference_date: Optional[str] = Field(None, max_length=40)
+    allocator: Optional[str] = Field(None, pattern=r"^(lp|greedy|stable)$")
+    limit: int = Field(50, ge=1, le=500)
 
 
 def _apply_scenario(data: "EngineData", req: SimulateRequest):

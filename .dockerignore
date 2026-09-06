@@ -34,11 +34,26 @@ docs/*.pdf
 docs/*.docx
 docs/generate_*.py
 
-# Secrets — must never enter the image (set via HF Space env vars instead)
+# Secrets — must never enter the image (set via HF Space env vars instead).
+# Docker matches a bare pattern at the root only, so the nested copies
+# (whatsapp_bot/.env, dashboard/.env.local) need the **/ form.
 .env
 .env.*
+**/.env
+**/.env.*
 *.pem
 *.key
+**/*.pem
+**/*.key
+
+# Local state and scratch — a quota file from a laptop must not seed prod
+.state/
+.tmp/
+**/.tmp/
+.claude/
+**/.claude/
+.vercel/
+**/.vercel/
 
 # OS junk
 .DS_Store

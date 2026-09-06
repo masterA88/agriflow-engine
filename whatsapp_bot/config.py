@@ -80,5 +80,23 @@ class Settings:
     # paywall. Disable it in deployments where that matters.
     debug_chat_enabled: bool = _bool(os.getenv("DEBUG_CHAT_ENABLED"), default=True)
 
+    # Deployment posture. "production" flips the demo defaults into hard
+    # requirements at startup (see security.check_production_posture), trims
+    # /health to a liveness answer, ignores the caller-supplied sender on
+    # /chat, and hides the OpenAPI docs unless API_DOCS_ENABLED says otherwise.
+    app_env: str = os.getenv("APP_ENV", "development").strip().lower() or "development"
+    # Swagger UI + openapi.json. Default: on in development, off in production.
+    api_docs_enabled: bool = _bool(
+        os.getenv("API_DOCS_ENABLED"),
+        default=(os.getenv("APP_ENV", "development").strip().lower() != "production"),
+    )
+    # Longest message /chat and /whatsapp will process. WhatsApp itself caps
+    # a message at 4096 characters; the intent parser needs far less.
+    max_message_chars: int = int(os.getenv("MAX_MESSAGE_CHARS", "1000"))
+
+    @property
+    def is_production(self) -> bool:
+        return self.app_env == "production"
+
 
 settings = Settings()

@@ -1,4 +1,4 @@
-// Server-side route protection — login-first.
+// Server-side route protection (login-first) and the per-request CSP nonce.
 //
 // In Next.js 16 this file is `proxy.ts` (renamed from `middleware.ts` in 16)
 // and the exported function must be named `proxy`.
@@ -19,6 +19,19 @@
 // Per the Next.js docs, proxy is for optimistic checks, not authorization —
 // which is exactly this split: routing funnel here, real enforcement at the
 // data layer.
+//
+// CONTENT SECURITY POLICY
+// -----------------------
+// Every response carries a nonce-based CSP. The nonce is minted here, handed
+// to Next.js through the `Content-Security-Policy` *request* header (which is
+// how the framework learns what to stamp on its own inline bootstrap scripts),
+// and echoed on the response. `'strict-dynamic'` lets those nonced scripts
+// load the chunks they import without listing every hash. Anything not
+// minted by this render (an injected <script>, an inline handler smuggled
+// through a data field) is refused by the browser.
+//
+// Pages have to render per request for a per-request nonce to be meaningful;
+// app/layout.tsx reads headers() for exactly that reason.
 
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
@@ -29,14 +42,80 @@ const DEV_COOKIE = "agriflow_dev"; // keep in sync with app/lib/devauth.ts
 // Pages that must stay reachable while signed out.
 const PUBLIC_PREFIXES = ["/login", "/forgot-password", "/reset-password"];
 
+const IS_DEV = process.env.NODE_ENV === "development";
+
+function stripSlash(url: string | undefined): string | undefined {
+  return url?.replace(/\/$/, "") || undefined;
+}
+
+function buildCsp(nonce: string): string {
+  const api = stripSlash(process.env.NEXT_PUBLIC_API_URL) ?? "http://localhost:8000";
+  const supabase = stripSlash(process.env.NEXT_PUBLIC_SUPABASE_URL);
+
+  // Where the browser may open fetch/XHR/WebSocket connections: the FastAPI
+  // backend, Supabase Auth (plus its realtime socket), and in dev the HMR
+  // socket that next dev opens on whatever port it was started on.
+  const connect = ["'self'", api];
+  if (supabase) connect.push(supabase, supabase.replace(/^http/, "ws"));
+  if (IS_DEV) connect.push("ws://localhost:*", "http://localhost:*");
+
+  const directives = [
+    "default-src 'self'",
+    // next dev evaluates source maps and React refresh through eval.
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${IS_DEV ? " 'unsafe-eval'" : ""}`,
+    // next/font, Leaflet, and React all set style attributes inline.
+    "style-src 'self' 'unsafe-inline'",
+    // Map tiles come from OpenStreetMap; Leaflet builds marker icons as data
+    // URIs; blob: covers the CSV download link the report page builds.
+    "img-src 'self' data: blob: https://*.tile.openstreetmap.org",
+    "font-src 'self' data:",
+    `connect-src ${connect.join(" ")}`,
+    "worker-src 'self' blob:",
+    "manifest-src 'self'",
+    "media-src 'none'",
+    "object-src 'none'",
+    "frame-src 'none'",
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+    "base-uri 'self'",
+  ];
+  // Rewrites http:// subresources to https:// in production. Left out in
+  // dev, where the API lives on plain http://localhost.
+  if (!IS_DEV) directives.push("upgrade-insecure-requests");
+  return directives.join("; ");
+}
+
+function newNonce(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes));
+}
+
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  const nonce = newNonce();
+  const csp = buildCsp(nonce);
+
+  // Builds the pass-through response, re-reading request.headers each time so
+  // cookies written by Supabase below travel with the forwarded request.
+  const passThrough = () => {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-nonce", nonce);
+    requestHeaders.set("content-security-policy", csp);
+    const res = NextResponse.next({ request: { headers: requestHeaders } });
+    res.headers.set("Content-Security-Policy", csp);
+    return res;
+  };
+  const withCsp = (res: NextResponse) => {
+    res.headers.set("Content-Security-Policy", csp);
+    return res;
+  };
 
   // The public landing. Exact match only: "/" cannot go into PUBLIC_PREFIXES
   // because every path startsWith "/", which would un-gate the whole site.
   // Short-circuited before the Supabase call so the landing costs no auth
   // round-trip.
-  if (path === "/") return NextResponse.next({ request });
+  if (path === "/") return passThrough();
 
   const isPublic = PUBLIC_PREFIXES.some((p) => path.startsWith(p));
   const hasGuest = request.cookies.get(GUEST_COOKIE)?.value === "1";
@@ -51,7 +130,7 @@ export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  let response = NextResponse.next({ request });
+  let response = passThrough();
   let user = null;
 
   // Resolve the real session when Supabase is configured. Wrapped in try/catch
@@ -73,7 +152,7 @@ export async function proxy(request: NextRequest) {
             cookiesToSet.forEach(({ name, value }) =>
               request.cookies.set(name, value),
             );
-            response = NextResponse.next({ request });
+            response = passThrough();
             cookiesToSet.forEach(({ name, value, options }) =>
               response.cookies.set(name, value, options),
             );
@@ -94,7 +173,7 @@ export async function proxy(request: NextRequest) {
   // Guests are NOT redirected away from /login, so they can upgrade to a real
   // account whenever they want.
   if (path.startsWith("/login") && user) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return withCsp(NextResponse.redirect(new URL("/dashboard", request.url)));
   }
 
   // Auth pages are always reachable.
@@ -107,7 +186,7 @@ export async function proxy(request: NextRequest) {
     // Preserve the destination so login can return them there. LoginForm only
     // honours relative paths, so this cannot become an open redirect.
     redirect.searchParams.set("next", path);
-    return NextResponse.redirect(redirect);
+    return withCsp(NextResponse.redirect(redirect));
   }
 
   return response;
@@ -117,6 +196,6 @@ export const config = {
   // Skip static assets and image optimization — gating a .svg on a Supabase
   // round trip would add one to every asset request.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
   ],
 };

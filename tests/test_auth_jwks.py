@@ -109,7 +109,7 @@ class JwksServer:
         return f"http://127.0.0.1:{self.port}"
 
 
-def mint(key, kid, alg, *, aud="authenticated", expires_in=3600, sub=SUB):
+def mint(key, kid, alg, *, aud="authenticated", expires_in=3600, sub=SUB, iss="auto"):
     now = datetime.now(timezone.utc)
     claims = {
         "sub": sub, "email": "dinas@example.go.id", "role": "authenticated",
@@ -117,6 +117,14 @@ def mint(key, kid, alg, *, aud="authenticated", expires_in=3600, sub=SUB):
     }
     if aud is not None:
         claims["aud"] = aud
+    # Supabase stamps iss = {SUPABASE_URL}/auth/v1 and auth.py now checks it.
+    # "auto" derives it from the env the test just set; None omits the claim.
+    if iss == "auto":
+        base = os.environ.get("SUPABASE_URL", "").rstrip("/")
+        if base:
+            claims["iss"] = f"{base}/auth/v1"
+    elif iss is not None:
+        claims["iss"] = iss
     return jwt.encode(claims, key, algorithm=alg, headers={"kid": kid})
 
 
@@ -249,14 +257,43 @@ class TestB_JwksRejections:
         with JwksServer({"keys": [jwk]}) as server:
             monkeypatch.setenv("SUPABASE_URL", server.url)
             from whatsapp_bot.auth import _verify
-            now = datetime.now(timezone.utc)
-            forged = jwt.encode(
-                {"sub": SUB, "aud": "authenticated",
-                 "iat": now, "exp": now + timedelta(hours=1)},
-                json.dumps(jwk), algorithm="HS256", headers={"kid": kid},
-            )
+            now = int(datetime.now(timezone.utc).timestamp())
+            # PyJWT >= 2.10 refuses to *mint* an HS256 token whose secret
+            # looks like a public key, so the attacker's token is assembled by
+            # hand here. The verifier under test still has to reject it.
+            import hashlib, hmac
+
+            def b64(raw: bytes) -> str:
+                return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+            header = b64(json.dumps({"alg": "HS256", "typ": "JWT", "kid": kid}).encode())
+            payload = b64(json.dumps({
+                "sub": SUB, "aud": "authenticated", "iss": f"{server.url}/auth/v1",
+                "iat": now, "exp": now + 3600,
+            }).encode())
+            signing_input = f"{header}.{payload}".encode()
+            sig = hmac.new(json.dumps(jwk).encode(), signing_input, hashlib.sha256).digest()
+            forged = f"{header}.{payload}.{b64(sig)}"
             with pytest.raises(Exception):
                 _verify(forged)
+
+    def test_wrong_issuer_is_rejected(self, monkeypatch, ec_setup):
+        # A validly signed token from a *different* Supabase project, or from
+        # a project whose JWKS an attacker controls, must not verify here.
+        key, jwk, kid, alg = ec_setup
+        with JwksServer({"keys": [jwk]}) as server:
+            monkeypatch.setenv("SUPABASE_URL", server.url)
+            from whatsapp_bot.auth import _verify
+            with pytest.raises(Exception):
+                _verify(mint(key, kid, alg, iss="https://other-project.supabase.co/auth/v1"))
+
+    def test_missing_issuer_is_rejected(self, monkeypatch, ec_setup):
+        key, jwk, kid, alg = ec_setup
+        with JwksServer({"keys": [jwk]}) as server:
+            monkeypatch.setenv("SUPABASE_URL", server.url)
+            from whatsapp_bot.auth import _verify
+            with pytest.raises(Exception):
+                _verify(mint(key, kid, alg, iss=None))
 
     def test_alg_none_is_rejected(self, monkeypatch, ec_setup):
         _, jwk, kid, _ = ec_setup
@@ -303,7 +340,7 @@ class TestC_Operational:
             from whatsapp_bot.auth import _verify
             now = datetime.now(timezone.utc)
             hs_token = jwt.encode(
-                {"sub": SUB, "aud": "authenticated",
+                {"sub": SUB, "aud": "authenticated", "iss": f"{server.url}/auth/v1",
                  "iat": now, "exp": now + timedelta(hours=1)},
                 secret, algorithm="HS256",
             )

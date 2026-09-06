@@ -11,6 +11,11 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
+# The API rate limiter is per client IP and every TestClient shares one
+# address, so the whole suite would trip it. Off by default here; the tests
+# in test_security_hardening.py switch it on explicitly.
+os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
+
 from matching_engine.models import (
     Commodity, DemandNode, EmergencyMode, Kabupaten, LogisticsContext,
     SupplyNode, Tier, WeatherForecast,

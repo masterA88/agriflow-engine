@@ -32,13 +32,13 @@ httpx==0.28.1            # required by fastapi.testclient
 twilio==9.10.9
 google-genai==2.3.0      # NEW SDK (google-generativeai deprecated 2025)
 python-dotenv==1.2.2
-python-multipart==0.0.28 # FastAPI form parsing for Twilio webhook
+python-multipart==0.0.32 # FastAPI form parsing for Twilio webhook
 
 # Dashboard auth — verifies Supabase-issued JWTs (whatsapp_bot/auth.py).
 # The [crypto] extra pulls in `cryptography`, required for the asymmetric
 # (ES256/RS256) signing keys that current Supabase projects issue by default.
 # Without it only the legacy HS256 shared-secret mode works.
-pyjwt[crypto]==2.10.1
+pyjwt[crypto]==2.13.0
 
 # Database layer (Step 1 — Supabase/Postgres backend; gated by DATA_BACKEND=postgres)
 sqlalchemy==2.0.41       # ORM / core — used by db/db_loader.py

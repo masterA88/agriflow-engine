@@ -85,30 +85,47 @@ def _jwks_client() -> PyJWKClient:
     return PyJWKClient(f"{base}/auth/v1/.well-known/jwks.json", cache_keys=True)
 
 
+# Clock skew tolerated on exp/nbf/iat. Supabase tokens live an hour; thirty
+# seconds covers a drifted container clock without meaningfully extending it.
+_LEEWAY_SECONDS = 30
+
+
+def _expected_issuer() -> Optional[str]:
+    """Supabase issues tokens as {SUPABASE_URL}/auth/v1. None when URL unset."""
+    base = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
+    return f"{base}/auth/v1" if base else None
+
+
 def _decode(token: str) -> Dict[str, Any]:
     """
-    Verify signature, expiry, and audience. Raises jwt exceptions on failure.
+    Verify signature, expiry, audience and (when SUPABASE_URL is known) the
+    issuer. Raises jwt exceptions on failure.
 
     Note we do NOT disable any default verification. In particular exp is
     always checked, so a stale token from a long-open browser tab is rejected
-    rather than honoured.
+    rather than honoured. `exp` and `sub` are required claims: a token that
+    never expires or names nobody is refused outright.
     """
+    options: Dict[str, Any] = {"require": ["exp", "sub"]}
+    issuer = _expected_issuer()
+    common: Dict[str, Any] = {
+        "audience": _AUDIENCE, "options": options, "leeway": _LEEWAY_SECONDS,
+    }
+    if issuer:
+        common["issuer"] = issuer
+
     secret = os.getenv("SUPABASE_JWT_SECRET")
     if secret:
-        return jwt.decode(
-            token, secret, algorithms=["HS256"], audience=_AUDIENCE,
-        )
+        return jwt.decode(token, secret, algorithms=["HS256"], **common)
 
-    if not os.getenv("SUPABASE_URL"):
+    if not issuer:
         raise RuntimeError(
             "Auth is not configured: set SUPABASE_JWT_SECRET or SUPABASE_URL."
         )
 
     signing_key = _jwks_client().get_signing_key_from_jwt(token)
     return jwt.decode(
-        token, signing_key.key,
-        algorithms=["RS256", "ES256"],
-        audience=_AUDIENCE,
+        token, signing_key.key, algorithms=["RS256", "ES256"], **common,
     )
 
 

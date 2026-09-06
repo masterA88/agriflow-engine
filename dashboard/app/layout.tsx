@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./lib/auth";
 
@@ -11,6 +12,16 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Body face. Self-hosted through next/font instead of a Google Fonts CSS
+// import: the stylesheet request was the one third-party fetch the CSP would
+// otherwise have to allow, and next/font serves the files from this origin.
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -41,15 +52,21 @@ export const viewport: Viewport = {
   themeColor: "#5b7245",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Reading the request headers opts every route into per-request rendering.
+  // That is deliberate: proxy.ts mints a fresh CSP nonce per request and
+  // Next.js stamps it on its inline scripts only when the page is rendered at
+  // request time. A statically prerendered page would ship yesterday's nonce
+  // and the browser would refuse to run the app.
+  await headers();
   return (
     <html
       lang="id"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <AuthProvider>{children}</AuthProvider>

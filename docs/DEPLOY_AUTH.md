@@ -113,6 +113,15 @@ Membuat salt:
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
+### Postur produksi (ditambahkan September 2026)
+
+Begitu kunci Gemini dan Twilio nyata terpasang, tambahkan `APP_ENV=production`
+(Variable). Server lalu menolak boot selama masih ada default demo yang aktif:
+`MOCK_MODE=true`, `TWILIO_VALIDATE_SIGNATURE=false`, `BILLING_MOCK=true`,
+atau `PHONE_HASH_SALT` kosong. Alasannya tercetak di log Space sebagai baris
+`security.posture`. Daftar lengkap variabel, temuan audit, dan probe untuk
+memverifikasi deployment ada di `docs/SECURITY_AUDIT_2026-09.md`.
+
 ### Kapan REQUIRE_AUTH dinyalakan
 
 - `false` — peta, prediksi, dan anomali terbuka untuk umum. **Pakai ini saat
