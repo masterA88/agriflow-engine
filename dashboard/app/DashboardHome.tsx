@@ -8,7 +8,6 @@ import { useCallback, useMemo, useState } from "react";
 import { useCoreData, useDistribution, useRecentAnomalies } from "./hooks/useDashboardData";
 import type { Match } from "./lib/api";
 import { deriveNotifications, type NotificationItem } from "./lib/notifications";
-import ChatWidget from "./components/ChatWidget";
 import ExplainDrawer from "./components/ExplainDrawer";
 import Sidebar, { type TabKey } from "./components/Sidebar";
 import TopBar from "./components/TopBar";
@@ -65,12 +64,8 @@ export default function Home() {
         active={tab}
         onSelect={go}
         badge={unread}
-        summary={core.summary}
-        meta={core.meta}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        onRefresh={() => { core.reload(); dist.reload(); }}
-        refreshing={core.loading || dist.loading}
       />
 
       <main className="flex-1 flex flex-col min-w-0 gap-4 lg:gap-6 lg:overflow-y-auto lg:h-[calc(100vh-3rem)]">
@@ -118,7 +113,6 @@ export default function Home() {
         {tab === "bantuan" && <Bantuan />}
       </main>
 
-      <ChatWidget />
       <ExplainDrawer match={explain} onClose={() => setExplain(null)} />
       <Tour step={tourStep} onStep={setTourStep} onClose={() => setTourStep(null)} />
     </div>

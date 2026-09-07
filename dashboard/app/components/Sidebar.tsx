@@ -1,7 +1,5 @@
 "use client";
 
-import type { Meta, Summary } from "../lib/api";
-import { fmtDate, fmtPct, fmtTon } from "../lib/format";
 import { Icons } from "./Icons";
 
 export type TabKey = "beranda" | "peta" | "distribusi" | "harga" | "simulasi" | "notifikasi" | "laporan" | "bantuan";
@@ -41,19 +39,14 @@ function SidebarButton({ active, icon, label, badge, onClick }: {
 }
 
 export default function Sidebar({
-  active, onSelect, badge, summary, meta, open, onClose, onRefresh, refreshing,
+  active, onSelect, badge, open, onClose,
 }: {
   active: TabKey;
   onSelect: (t: TabKey) => void;
   badge: number;
-  summary: Summary | null;
-  meta: Meta | null;
   open: boolean;
   onClose: () => void;
-  onRefresh: () => void;
-  refreshing: boolean;
 }) {
-  const t = summary?.totals;
   const body = (
     <div className="flex flex-col gap-4">
       <div className="bg-white rounded-2xl p-5 shadow-md flex flex-col gap-4">
@@ -76,38 +69,6 @@ export default function Sidebar({
             />
           ))}
         </nav>
-      </div>
-
-      <div className="bg-white rounded-2xl p-5 shadow-md flex flex-col">
-        <div className="flex justify-between items-center mb-3">
-          <span className="text-xs font-bold text-zinc-800">Neraca semua komoditas</span>
-          <span className="text-[10px] text-zinc-400 font-mono">BPS {summary?.data_as_of.bps_reference_year ?? "?"}</span>
-        </div>
-        {t ? (
-          <dl className="space-y-2.5 text-xs">
-            <Row dot="bg-emerald-500" label="Surplus total" value={fmtTon(t.surplus_tons)} />
-            <Row dot="bg-rose-500" label="Defisit total" value={fmtTon(t.deficit_tons)} />
-            <Row dot="bg-indigo-500" label="Tercocokkan engine" value={fmtTon(t.matched_tons)} />
-            <Row dot="bg-amber-500" label="Kebutuhan tertutup" value={fmtPct(t.coverage_pct)} />
-            <Row dot="bg-zinc-400" label="Jumlah match" value={String(t.n_matches)} />
-          </dl>
-        ) : (
-          <div className="text-xs text-zinc-400">{meta ? "Memuat ringkasan..." : "Menunggu API..."}</div>
-        )}
-        <button
-          onClick={onRefresh}
-          disabled={refreshing}
-          className="w-full mt-4 bg-[#5b7245] hover:bg-[#4f643c] disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl py-2 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-        >
-          <Icons.RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-          {refreshing ? "Memuat ulang..." : "Muat ulang dari API"}
-        </button>
-        {meta && (
-          <p className="text-[10px] text-zinc-400 mt-2 leading-snug">
-            Harga s.d. {fmtDate(meta.data_as_of.price_history_end)} · engine v{meta.engine_version}
-            {meta.git_commit ? ` · ${meta.git_commit}` : ""}
-          </p>
-        )}
       </div>
 
       <div className="bg-[#dbe6d3] text-[#4e643c] rounded-2xl p-4 text-xs font-medium leading-relaxed shadow-sm flex items-start gap-2.5">
@@ -135,17 +96,5 @@ export default function Sidebar({
         </div>
       )}
     </>
-  );
-}
-
-function Row({ dot, label, value }: { dot: string; label: string; value: string }) {
-  return (
-    <div className="flex justify-between items-center gap-2">
-      <dt className="text-zinc-500 flex items-center gap-1.5">
-        <span className={`w-2 h-2 rounded-full inline-block ${dot}`} />
-        {label}
-      </dt>
-      <dd className="text-zinc-800 font-semibold tabular-nums">{value}</dd>
-    </div>
   );
 }

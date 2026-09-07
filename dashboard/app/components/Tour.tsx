@@ -7,7 +7,6 @@ export const TOUR_STEPS = [
   { title: "Data per", desc: "Pil di kiri atas menampilkan tanggal data yang benar-benar dilayani API: harga PIHPS, neraca BPS, versi engine, dan allocator. Angka ini datang dari /api/v1/meta, bukan diketik." },
   { title: "Rekomendasi yang bisa dijelaskan", desc: "Setiap kartu memuat skor lima dimensi, pengali equity, dan alasan dalam bahasa manusia. Tombol 'Bandingkan pemasok' menampilkan semua pemasok yang layak dan mengapa yang lain tidak dipilih." },
   { title: "Simulasi what-if", desc: "Centang erupsi Semeru, banjir sentra padi, Ramadan, atau BBM naik, lalu jalankan ulang engine. Hasilnya dibandingkan dengan baseline hari ini, termasuk match yang dibatalkan dan dialihkan." },
-  { title: "Tanya AgriFlow", desc: "Widget di kanan bawah memanggil endpoint /chat yang sama dengan bot WhatsApp. Coba dalam Bahasa Jawa." },
 ];
 
 export default function Tour({ step, onStep, onClose }: { step: number | null; onStep: (s: number) => void; onClose: () => void }) {
