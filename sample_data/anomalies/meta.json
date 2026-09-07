@@ -1,6 +1,6 @@
 {
   "method": "hampel_mad_v2",
-  "generated_at": "2026-09-06T11:42:58+00:00",
+  "generated_at": "2026-09-07T13:36:21+00:00",
   "params": {
     "window": 30,
     "k": 3.0,
