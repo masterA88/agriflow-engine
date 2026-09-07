@@ -11,7 +11,8 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#5b7245",
     lang: "id",
     icons: [
-      { src: "/logo.png", sizes: "any", type: "image/png", purpose: "any" },
+      { src: "/agriflow-icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/agriflow-icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }
