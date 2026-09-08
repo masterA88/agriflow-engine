@@ -90,7 +90,7 @@ Tiga fungsi (Deteksi · Prediksi · Distribusi) berbagi satu sumber data nyata, 
 |--------|-------|:------:|
 | **Distribusi** | Matching engine 4-lapis (hard constraints → multi-objective scoring → equity) berjalan di **data BPS asli per-kabupaten (2022)** | ✅ |
 | **Deteksi** | Deteksi anomali harga Hampel/MAD pada residual deseasonalized (sebelumnya berlabel S-H-ESD) pada harga PIHPS harian **2021–2025** | ✅ |
-| **Prediksi** | Forecasting harga 30 hari. Yang **dilayani hari ini** adalah baseline seasonal-naive (`seasonal_naive_baseline`) dengan **MAPE 10,8%** pada [backtest holdout](docs/evidence/pengujian.md#3-model-evaluation). Pipeline TimesFM 2.0 sudah ada di repo tetapi **belum melayani produksi** | ✅ |
+| **Prediksi** | Forecasting harga 30 hari untuk 38 kabupaten/kota x 7 komoditas. Yang **dilayani sejak 2026-09-08** adalah **TimesFM 2.0 zero-shot** (`timesfm_2.0`) dengan pita P10 sampai P90 dari kuantil model (belum dikalibrasi, belum ada backtest pada data ini; angka akurasinya menyusul setelah backtest rolling-origin dijalankan). Baseline seasonal-naive dengan interval split-conformal tetap ada sebagai fallback dan itulah yang **MAPE 10,8%** pada [backtest holdout](docs/evidence/pengujian.md#3-model-evaluation) | ✅ |
 | **Aksesibilitas** | **Chatbot WhatsApp** (tanya harga & rekomendasi) + **Dashboard** peta interaktif | ✅ |
 | **Keamanan** | Situs bersifat *login-first*: membuka website menampilkan halaman login lebih dulu. Juri cukup klik **"Masuk sebagai Tamu"** untuk meninjau tanpa membuat akun. Akun Supabase (JWT terverifikasi server-side, Row Level Security di 12 tabel, reset password) siap untuk model berlangganan; data sensitif (langganan & pembayaran) tetap dijaga verifikasi JWT di sisi server. | ✅ |
 | **Data nyata** | **6 komoditas** real per-kab: beras premium & medium, cabai merah & rawit, bawang merah & putih + harga PIHPS 5 tahun | ✅ |
@@ -239,7 +239,7 @@ Perubahan sisi server yang menutup utang teknis Phase 3 butir 1 dan 2 serta temu
 |---|---|---|
 | Allocator L3 optimal: LP transportasi berkapasitas (scipy HiGHS), equity di dalam objective; greedy tetap fallback | `matching_engine/allocation.py::lp_optimal_allocate`, `ALLOCATOR=lp` default di API | `python benchmarks/lp_allocator.py` (welfare vs greedy dicatat di `run_metadata.welfare_gain_pct`) |
 | Satu detektor anomali: gerbang D3 memakai output scanner Hampel/MAD yang sama dengan panel; label API `hampel_mad_v2` (bukan S-H-ESD) | `analysis/anomaly_gate.py`, `run_matching(anomaly_keys=...)` | `run_metadata.anomaly_gate == "batch_hampel_mad"` |
-| Interval prakiraan terkalibrasi: split-conformal rolling-origin, coverage 80% terukur (sebelumnya 42%) pada MAPE 10,8% yang sama | `analysis/forecast_timesfm.py`, field `interval_method` | `python analysis/backtest_baseline.py` |
+| Interval prakiraan terkalibrasi pada baseline seasonal-naive (fallback): split-conformal rolling-origin, coverage 80% terukur (sebelumnya 42%) pada MAPE 10,8% yang sama; artefak TimesFM yang dilayani masih memakai kuantil model tanpa kalibrasi | `analysis/forecast_timesfm.py`, field `interval_method` | `python analysis/backtest_baseline.py` |
 | Bug kalender (audit F1): Ramadan eksplisit menang atas SCHOOL_START; kebijakan impor dikomposisikan di atas profil event | `matching_engine/engine.py`, `scoring.apply_import_policy` | `tests/test_backend_v11.py::TestCalendarPriority` |
 | Endpoint baru: `/api/v1/meta` (data per), `/api/v1/summary` (KPI dihitung), `/api/v1/report.csv`, `/api/v1/matches/explain`, `POST /api/v1/simulate` (preset: semeru, banjir_sentra_padi, banjir_madura, ramadan, bbm_20, impor, suramadu_tutup) | `whatsapp_bot/server.py` | `tests/test_backend_v11.py::TestApiV11` |
 | Kartu match membawa `breakdown` 5 dimensi, `base_score`, `equity_multiplier`, `why` | `_serialize_match` | `GET /api/v1/matches` |
@@ -318,7 +318,7 @@ belum punya rilis bernomor.
 |---|:---:|---|
 | Test case | ✅ | [544 lulus, 8 skip](docs/evidence/runs/pytest.txt) · [`tests/`](tests) · [CI 4 leg](.github/workflows/test.yml) |
 | Hasil eksperimen | ✅ | greedy vs optimal · [sensitivitas bobot](docs/evidence/runs/weight_sensitivity.txt) · [gap dua detektor](docs/evidence/runs/anomaly_detector_gap.txt) |
-| Model evaluation | ✅ | [Backtest holdout, MAPE 10,8%](docs/evidence/runs/backtest_baseline.txt) |
+| Model evaluation | ✅ | [Backtest holdout baseline seasonal-naive, MAPE 10,8%](docs/evidence/runs/backtest_baseline.txt); backtest TimesFM 2.0 belum dijalankan |
 | Performance test | ✅ | [latency](docs/evidence/runs/latency.txt) · [skala nasional](docs/evidence/runs/national_scale.txt) · [beban dashboard](docs/evidence/runs/dashboard_load.txt) |
 | A/B test | ✅ | [Haversine vs jarak jalan](docs/evidence/runs/ab_test_road_distance.txt) |
 | Hasil simulasi | ✅ | 25 skenario edge-case · [skenario pasokan langka](docs/evidence/runs/equity_comparison_constrained.txt) |

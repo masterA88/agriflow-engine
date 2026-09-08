@@ -90,7 +90,7 @@ All three functions (Detect · Predict · Distribute) share one real data source
 |----------|---------|:------:|
 | **Distribute** | 4-layer matching engine (hard constraints → multi-objective scoring → equity) running on **real BPS per-district data (2022)** | ✅ |
 | **Detect** | Price anomaly detection (deseasonalize + robust statistics) on daily PIHPS prices **2021–2025** | ✅ |
-| **Predict** | 30-day price forecasting. What is **served today** is a seasonal-naive baseline (`seasonal_naive_baseline`) at **10.8% MAPE** on a [holdout backtest](docs/evidence/pengujian.md#3-model-evaluation). The TimesFM 2.0 pipeline is in the repo but **not yet serving production** | ✅ |
+| **Predict** | 30-day price forecasting for 38 regencies/cities x 7 commodities. What is **served since 2026-09-08** is **TimesFM 2.0 zero-shot** (`timesfm_2.0`) with a P10 to P90 band from the model quantiles (uncalibrated, no backtest on this data yet; an accuracy figure follows once the rolling-origin backtest has been run). The seasonal-naive baseline with split-conformal intervals remains as the fallback, and that is the model behind the **10.8% MAPE** on the [holdout backtest](docs/evidence/pengujian.md#3-model-evaluation) | ✅ |
 | **Accessibility** | **WhatsApp Chatbot** (ask price & recommendations) + **interactive map Dashboard** | ✅ |
 | **Security** | The site is *login-first*: opening it shows a login page. Judges click **"Masuk sebagai Tamu" (Enter as Guest)** to review without creating an account. A Supabase account system (server-side JWT verification, Row Level Security on 12 tables, password reset) is ready for a subscription model; sensitive subscriber & billing data stays JWT-protected server-side. | ✅ |
 | **Real data** | **6 real commodities** per-district: premium & medium rice, large & cayenne chilli, red & garlic onion + 5 years of PIHPS prices | ✅ |
@@ -215,7 +215,7 @@ Server-side changes that close Phase 3 engineering-debt items 1 and 2, plus audi
 |---|---|---|
 | Optimal L3 allocator: capacitated LP transportation (scipy HiGHS), equity inside the objective; greedy stays as fallback | `matching_engine/allocation.py::lp_optimal_allocate`, `ALLOCATOR=lp` default in the API | `python benchmarks/lp_allocator.py` (welfare vs greedy logged in `run_metadata.welfare_gain_pct`) |
 | One anomaly detector: the D3 gate uses the same Hampel/MAD scanner output as the panel; API label `hampel_mad_v2` (not S-H-ESD) | `analysis/anomaly_gate.py`, `run_matching(anomaly_keys=...)` | `run_metadata.anomaly_gate == "batch_hampel_mad"` |
-| Calibrated forecast interval: split-conformal rolling-origin, measured 80% coverage (was 42%) at the same 10.8% MAPE | `analysis/forecast_timesfm.py`, field `interval_method` | `python analysis/backtest_baseline.py` |
+| Calibrated forecast interval on the seasonal-naive baseline (fallback): split-conformal rolling-origin, measured 80% coverage (was 42%) at the same 10.8% MAPE; the served TimesFM artefact still uses uncalibrated model quantiles | `analysis/forecast_timesfm.py`, field `interval_method` | `python analysis/backtest_baseline.py` |
 | Calendar bug (audit F1): explicit Ramadan now wins over SCHOOL_START; import policy composes on top of the event profile | `matching_engine/engine.py`, `scoring.apply_import_policy` | `tests/test_backend_v11.py::TestCalendarPriority` |
 | New endpoints: `/api/v1/meta` (data-as-of), `/api/v1/summary` (computed KPIs), `/api/v1/report.csv`, `/api/v1/matches/explain`, `POST /api/v1/simulate` (presets: semeru, banjir_sentra_padi, banjir_madura, ramadan, bbm_20, impor, suramadu_tutup) | `whatsapp_bot/server.py` | `tests/test_backend_v11.py::TestApiV11` |
 | Match cards carry a 5-dimension `breakdown`, `base_score`, `equity_multiplier`, `why` | `_serialize_match` | `GET /api/v1/matches` |
@@ -294,7 +294,7 @@ no numbered release yet.
 |---|:---:|---|
 | Test case | ✅ | [544 passing, 8 skipped](docs/evidence/runs/pytest.txt) · [`tests/`](tests) · [CI, 4 legs](.github/workflows/test.yml) |
 | Experiment results | ✅ | greedy vs optimal · [weight sensitivity](docs/evidence/runs/weight_sensitivity.txt) · [detector gap](docs/evidence/runs/anomaly_detector_gap.txt) |
-| Model evaluation | ✅ | [Holdout backtest, 10.8% MAPE](docs/evidence/runs/backtest_baseline.txt) |
+| Model evaluation | ✅ | [Holdout backtest of the seasonal-naive baseline, 10.8% MAPE](docs/evidence/runs/backtest_baseline.txt); the TimesFM 2.0 backtest has not been run yet |
 | Performance test | ✅ | [latency](docs/evidence/runs/latency.txt) · [national scale](docs/evidence/runs/national_scale.txt) · [dashboard load](docs/evidence/runs/dashboard_load.txt) |
 | A/B test | ✅ | [Haversine vs road distance](docs/evidence/runs/ab_test_road_distance.txt) |
 | Simulation results | ✅ | 25 edge-case scenarios · [supply-constrained scenario](docs/evidence/runs/equity_comparison_constrained.txt) |

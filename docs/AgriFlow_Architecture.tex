@@ -169,15 +169,23 @@ musim hari raya~\cite{eidpihps2026} \emph{material} terhadap akurasi --- karenan
 menambahkan kovariat (kalender Ramadan, indeks ENSO) yang secara teknis dapat di-\emph{retrofit}
 ke foundation model~\cite{chronosx2025}.
 
-\subsection{Update v1.1: interval terkalibrasi}
-Sejak v1.1, baseline yang dilayani ke pengguna membawa \emph{split-conformal rolling-origin
+\subsection{Update v1.1: interval terkalibrasi pada baseline}
+Sejak v1.1, baseline seasonal-naive membawa \emph{split-conformal rolling-origin
 band}: kalibrasi dilakukan pada 36 origin backtest $\times$ 30 hari, dan cakupan interval P10/P90
 terukur naik dari 42\% menjadi \textbf{80\%} pada MAPE 10,8\% yang sama (tidak ada trade-off
-akurasi titik demi cakupan). Ini menutup keterbatasan kalibrasi yang sebelumnya dicatat di bagian
-ini. Kandidat model berikutnya juga bergeser: alih-alih upgrade ke TimesFM 2.0, kandidat paling
-relevan sekarang adalah \textbf{Chronos-2}~\cite{chronosx2025}, karena arsitekturnya
-\emph{covariate-aware} secara native (menerima kalender Ramadan dan indeks ENSO tanpa retrofit
-terpisah), sejalan dengan kebutuhan kovariat eksogen yang sudah diidentifikasi di atas.
+akurasi titik demi cakupan). Angka ini milik baseline, bukan TimesFM.
+
+\subsection{Update v1.2 (September 2026): TimesFM 2.0 dilayani, backtest menyusul}
+Sejak 2026-09-08 artefak yang dilayani adalah TimesFM 2.0 \emph{zero-shot} untuk 266 deret
+(38 kabupaten/kota $\times$ 7 komoditas) di atas harga harian Siskaperbapo Jatim dengan PIHPS
+sebagai cadangan. Pita P10/P90 diambil dari kuantil model dan \emph{belum} dikalibrasi; backtest
+rolling-origin TimesFM pada data ini belum dijalankan, sehingga proyek ini belum mengklaim angka
+akurasi untuk model yang dilayani. Catatan data yang jujur: deret Siskaperbapo bertangga (harga
+tidak berubah pada sekitar 86\% hari dalam 180 hari terakhir), jadi MAPE agregat akan tampak
+lebih baik daripada kenyataannya; evaluasi yang direncanakan melaporkan galat per komoditas,
+pinball loss, dan cakupan interval, dibandingkan dengan persistence seasonal-naive. Kandidat
+berikutnya tetap \textbf{Chronos-2}~\cite{chronosx2025} karena \emph{covariate-aware} secara
+native (kalender Ramadan, indeks ENSO), sejalan dengan kebutuhan kovariat eksogen di atas.
 
 % =====================================================================
 \section{Deteksi --- Anomali Harga}
