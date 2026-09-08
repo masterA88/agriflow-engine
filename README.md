@@ -48,7 +48,7 @@ Language / Bahasa: [English](./README.en.md) · **Bahasa Indonesia**
 | Resource | Link |
 |----------|------|
 | Pitch Deck | [Canva](https://www.canva.com/design/DAHETj2ulzg/VIvgxVkQ6I9R24ucphy2mQ/view) |
-| Dashboard (Live Demo) | [agriflow-engine.vercel.app](https://agriflow-engine.vercel.app/) |
+| Dashboard (Live Demo) | [agriflow.farm](https://agriflow.farm/) |
 | Proposal (v13) | [docs/AgriFlow_Proposal_v13.pdf](docs/AgriFlow_Proposal_v13.pdf) |
 | 📋 Bukti Pendukung | [Lima kategori bukti](#-bukti-pendukung) — setelah Phase 3 |
 | 💬 Umpan Balik Pengguna | [5 early tester + 4 wawancara petani](#-umpan-balik-pengguna) |
@@ -291,7 +291,7 @@ Status hari ini: **MVP yang berjalan di produksi**, bukan mockup dan bukan proof
 | Proof of concept | ✅ | [Demo data BPS asli 2022](docs/evidence/runs/demo_real_bps.txt) |
 | Source code repository | ✅ | Repositori ini, lisensi terbuka |
 | API test | ✅ | [Respons API produksi live](docs/evidence/runs/api-live-responses.md) · 40 tes otomatis endpoint |
-| Working dashboard | ✅ | [agriflow-engine.vercel.app](https://agriflow-engine.vercel.app/) |
+| Working dashboard | ✅ | [agriflow.farm](https://agriflow.farm/) |
 | Alpha/beta version | ✅ | Versi beta publik, akses tamu tanpa registrasi |
 | Demo dengan input & output nyata | ✅ | [Keluaran demo](docs/evidence/runs/demo_real_bps.txt) · [respons API](docs/evidence/runs/api-live-responses.md) |
 | Rule engine yang dapat dijalankan | ✅ | [`matching_engine/`](matching_engine) 4 lapis, satu perintah |
