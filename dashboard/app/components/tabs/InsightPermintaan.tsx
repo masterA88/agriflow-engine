@@ -25,7 +25,9 @@ export default function InsightPermintaan({ commodities, kabupaten }: { commodit
     return () => { active = false; };
   }, []);
 
-  const name = (code: string) => commodities.find((c) => c.code === code)?.nama ?? code;
+  // Forecast-only commodities (no BPS balance) are not in the engine's list.
+  const EXTRA_NAMES: Record<string, string> = { daging_ayam: "Daging Ayam", telur_ayam: "Telur Ayam" };
+  const name = (code: string) => commodities.find((c) => c.code === code)?.nama ?? EXTRA_NAMES[code] ?? code;
   const kabName = (id: string) => kabupaten.find((k) => k.id === id)?.nama ?? id;
 
   const byCommodity = useMemo(() => {
