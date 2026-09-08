@@ -4,7 +4,7 @@ import { Icons } from "./Icons";
 
 export const TOUR_STEPS = [
   { title: "Komoditas dengan data BPS asli", desc: "Pilih komoditas di kanan atas. Enam komoditas ini punya neraca produksi dan konsumsi per kabupaten dari BPS 2022; peta, rekomendasi, dan KPI berubah mengikutinya." },
-  { title: "Data per", desc: "Pil di kiri atas menampilkan tanggal data yang benar-benar dilayani API: harga PIHPS, neraca BPS, versi engine, dan allocator. Angka ini datang dari /api/v1/meta, bukan diketik." },
+  { title: "Data per", desc: "Pil di kiri atas menampilkan tanggal data yang benar-benar dilayani API: harga harian, neraca BPS, versi engine, dan allocator. Angka ini datang dari /api/v1/meta, bukan diketik." },
   { title: "Rekomendasi yang bisa dijelaskan", desc: "Setiap kartu memuat skor lima dimensi, pengali equity, dan alasan dalam bahasa manusia. Tombol 'Bandingkan pemasok' menampilkan semua pemasok yang layak dan mengapa yang lain tidak dipilih." },
   { title: "Simulasi what-if", desc: "Centang erupsi Semeru, banjir sentra padi, Ramadan, atau BBM naik, lalu jalankan ulang engine. Hasilnya dibandingkan dengan baseline hari ini, termasuk match yang dibatalkan dan dialihkan." },
 ];

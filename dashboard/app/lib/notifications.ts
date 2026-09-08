@@ -81,7 +81,7 @@ export function deriveNotifications(args: {
       id: "data-refresh",
       type: "data",
       title: "Data diperbarui",
-      text: `Harga PIHPS s.d. ${fmtDate(meta.data_as_of.price_history_end)}, scan anomali ${fmtDateTime(meta.data_as_of.anomaly_scan_generated_at)}, prakiraan ${fmtDateTime(meta.data_as_of.forecast_generated_at)}, neraca BPS ${meta.data_as_of.bps_reference_year}.`,
+      text: `Harga harian s.d. ${fmtDate(meta.data_as_of.price_history_end)}, scan anomali ${fmtDateTime(meta.data_as_of.anomaly_scan_generated_at)}, prakiraan ${fmtDateTime(meta.data_as_of.forecast_generated_at)}, neraca BPS ${meta.data_as_of.bps_reference_year}.`,
       when: fmtDateTime(meta.data_as_of.anomaly_scan_generated_at),
       sortKey: meta.data_as_of.anomaly_scan_generated_at ?? "0000",
       category: "Update Data",

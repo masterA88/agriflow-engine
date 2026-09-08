@@ -66,7 +66,7 @@ export default function Laporan({ summary, meta, commodities }: { summary: Summa
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="bg-white rounded-2xl p-4 shadow-sm text-xs space-y-1.5">
           <span className="text-sm font-bold text-zinc-800 block mb-1">Data per</span>
-          <Row k="Harga PIHPS" v={`s.d. ${fmtDate(meta?.data_as_of.price_history_end)}`} />
+          <Row k="Harga harian (Siskaperbapo + PIHPS)" v={`s.d. ${fmtDate(meta?.data_as_of.price_history_end)}`} />
           <Row k="Neraca BPS" v={`tahun ${meta?.data_as_of.bps_reference_year ?? "?"}, IPM ${meta?.data_as_of.ipm_year ?? "?"}`} />
           <Row k="Scan anomali" v={fmtDateTime(meta?.data_as_of.anomaly_scan_generated_at)} />
           <Row k="Prakiraan" v={`${fmtDateTime(meta?.data_as_of.forecast_generated_at)} (${meta?.data_as_of.forecast_interval_methods.join(", ") ?? ""})`} />

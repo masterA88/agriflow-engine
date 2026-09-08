@@ -45,7 +45,7 @@ export default function Beranda({
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
         <div>
           <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">Neraca pangan Jawa Timur: {name}</h2>
-          <p className="text-xs text-emerald-100/80 mt-0.5">38 kabupaten/kota, neraca produksi dikurangi konsumsi (BPS {summary?.data_as_of.bps_reference_year ?? "2022"}), harga median PIHPS.</p>
+          <p className="text-xs text-emerald-100/80 mt-0.5">38 kabupaten/kota, neraca produksi dikurangi konsumsi (BPS {summary?.data_as_of.bps_reference_year ?? "2022"}), harga median Siskaperbapo dan PIHPS.</p>
         </div>
         <div className="hidden lg:block"><DataStatus meta={meta} error={apiError} /></div>
       </div>
@@ -84,7 +84,7 @@ export default function Beranda({
           <div className="bg-white rounded-2xl p-4 shadow-sm flex flex-col gap-3">
             <div className="flex justify-between items-center">
               <span className="text-xs font-bold text-zinc-800">Harga median {name}</span>
-              <span className="text-[10px] text-zinc-400">PIHPS s.d. {fmtDate(meta?.data_as_of.price_history_end)}</span>
+              <span className="text-[10px] text-zinc-400">harga harian s.d. {fmtDate(meta?.data_as_of.price_history_end)}</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-[#f4f7f2] border border-[#e4ebd3] p-3 rounded-xl">

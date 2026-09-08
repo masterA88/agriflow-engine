@@ -74,7 +74,7 @@ export default function Sidebar({
       <div className="bg-[#dbe6d3] text-[#4e643c] rounded-2xl p-4 text-xs font-medium leading-relaxed shadow-sm flex items-start gap-2.5">
         <Icons.Info className="w-4 h-4 shrink-0 mt-0.5" />
         <span>
-          Setiap angka di dashboard ini dihitung engine dari data BPS dan PIHPS. Klik kartu rekomendasi untuk melihat mengapa engine memilihnya.
+          Setiap angka di dashboard ini dihitung engine dari data BPS, Siskaperbapo, dan PIHPS. Klik kartu rekomendasi untuk melihat mengapa engine memilihnya.
         </span>
       </div>
     </div>

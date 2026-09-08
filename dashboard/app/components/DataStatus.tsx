@@ -27,7 +27,7 @@ export default function DataStatus({ meta, error, compact = false }: { meta: Met
     >
       <Icons.Database className="w-3.5 h-3.5 text-[#5b7245] shrink-0" />
       <span className="block min-w-0 truncate">
-        <strong>Data per:</strong> PIHPS {fmtDate(d.price_history_end)}
+        <strong>Data per:</strong> harga {fmtDate(d.price_history_end)}
         {!compact && <> · BPS {d.bps_reference_year} · IPM {d.ipm_year}</>}
         {" "}· engine v{meta.engine_version}
         {!compact && meta.allocator === "lp_optimal" && <> · LP optimal</>}

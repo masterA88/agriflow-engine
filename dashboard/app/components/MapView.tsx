@@ -83,7 +83,7 @@ export default function MapView({
             <Tooltip direction="top" offset={[0, -4]}>
               <div className="space-y-1 text-[11px] text-zinc-700 leading-normal">
                 <strong className="text-sm text-zinc-900 block border-b border-zinc-100 pb-0.5">{k.nama}</strong>
-                <div>Tier: <span className="font-semibold text-zinc-800">{k.tier === "TIER_1_HIGH" ? "1 (kota IHK, harga harian)" : "2 (harga mingguan)"}</span></div>
+                <div>Tier: <span className="font-semibold text-zinc-800">{k.tier === "TIER_1_HIGH" ? "1 (kota IHK)" : "2"} · harga harian Siskaperbapo</span></div>
                 <div>IPM {k.ipm.toFixed(1)} · {k.population.toLocaleString("id-ID")} jiwa</div>
                 {row && (
                   <div className="mt-1 pt-1 border-t border-dashed border-zinc-200 font-semibold" style={{ color }}>

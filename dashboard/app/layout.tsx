@@ -34,14 +34,14 @@ export const metadata: Metadata = {
   // landing hero uses.
   title: "AgriFlow · Platform Ketahanan Pangan Jawa Timur",
   description:
-    "Pencocokan pasokan pangan surplus-defisit untuk 38 kabupaten/kota Jawa Timur, dihitung optimal dari data BPS dan PIHPS.",
+    "Pencocokan pasokan pangan surplus-defisit untuk 38 kabupaten/kota Jawa Timur, dihitung optimal dari data BPS, Siskaperbapo, dan PIHPS.",
   applicationName: "AgriFlow",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "AgriFlow", statusBarStyle: "default" },
   openGraph: {
     title: "AgriFlow · Platform Ketahanan Pangan Jawa Timur",
     description:
-      "Surplus di satu daerah, defisit di daerah lain. AgriFlow memasangkannya dari data resmi BPS dan PIHPS.",
+      "Surplus di satu daerah, defisit di daerah lain. AgriFlow memasangkannya dari data resmi BPS, Siskaperbapo, dan PIHPS.",
     images: ["/landing-hero.jpg"],
   },
 };
