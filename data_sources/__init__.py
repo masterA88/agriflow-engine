@@ -27,6 +27,7 @@ Usage standar di engine:
 """
 
 from .pihps_bi import PIHPSConnector, get_pihps_prices, TIER1_KOTA_IHK
+from .siskaperbapo import SiskaperbapoClient, scrape_range as scrape_siskaperbapo
 from .bapanas import BapanasConnector, get_bapanas_weekly
 from .bps import BPSConnector, IPM_2024_JATIM, get_ipm_jatim
 from .bmkg import WeatherConnector, get_route_weather
@@ -38,6 +39,8 @@ from .hijri_calendar import HijriCalendarConnector, is_ramadan_period
 __all__ = [
     # PIHPS
     "PIHPSConnector", "get_pihps_prices", "TIER1_KOTA_IHK",
+    # Siskaperbapo
+    "SiskaperbapoClient", "scrape_siskaperbapo",
     # Bapanas
     "BapanasConnector", "get_bapanas_weekly",
     # BPS

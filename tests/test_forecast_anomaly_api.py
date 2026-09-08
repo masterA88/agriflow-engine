@@ -77,9 +77,12 @@ class TestPrecomputedFiles:
         assert isinstance(data, list) and len(data) > 0
 
     def test_anomaly_file_nonempty(self):
+        """Accept both artifact schemas: the v1 bare list and the source-aware
+        v2 dict that keeps the flat records under "events"."""
         with ANOMALIES_PATH.open(encoding="utf-8") as fh:
             data = json.load(fh)
-        assert isinstance(data, list) and len(data) > 0
+        events = data.get("events") if isinstance(data, dict) else data
+        assert isinstance(events, list) and len(events) > 0
 
     def test_forecast_record_schema(self):
         """Each forecast record must carry required keys."""

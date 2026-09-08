@@ -48,8 +48,12 @@ jobs:
       - name: Recompute anomalies
         run: python analysis/precompute_anomalies.py
 
-      - name: Recompute forecasts (conformal band)
-        run: python analysis/forecast_timesfm.py --method baseline
+      # Forecasts are NOT regenerated here. The served artefact is a TimesFM 2.0
+      # run over the Siskaperbapo+PIHPS history (38 kab/kota); this job has no
+      # GPU and no new price history, and `--method baseline` would silently
+      # replace it with the seasonal-naive fallback. Re-run
+      # `python analysis/forecast_timesfm.py --method timesfm` by hand after a
+      # price-history refresh instead.
 
       - name: Backtest the served forecaster
         run: python analysis/backtest_baseline.py --json analysis/output/backtest_baseline.json
@@ -61,10 +65,10 @@ jobs:
         run: |
           git config user.name "agriflow-refresh-bot"
           git config user.email "refresh-bot@users.noreply.github.com"
-          git add sample_data/anomalies sample_data/forecasts analysis/output
+          git add sample_data/anomalies analysis/output
           if git diff --cached --quiet; then
             echo "No artefact changes."
           else
-            git commit -m "data: daily refresh of anomalies, forecasts, backtest ($(date -u +%Y-%m-%d))"
+            git commit -m "data: daily refresh of anomalies and backtest ($(date -u +%Y-%m-%d))"
             git push
           fi

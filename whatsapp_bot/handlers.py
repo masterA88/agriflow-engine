@@ -7,6 +7,8 @@ plus simple bullet markers.
 """
 
 from __future__ import annotations
+import csv
+import functools
 import json
 import os
 from pathlib import Path
@@ -30,6 +32,83 @@ _HANDLERS_DIR   = Path(__file__).parent
 _PROJECT_ROOT   = _HANDLERS_DIR.parent
 _FORECASTS_PATH = _PROJECT_ROOT / "sample_data" / "forecasts" / "forecast_all.json"
 _ANOMALIES_PATH = _PROJECT_ROOT / "sample_data" / "anomalies" / "anomalies_all.json"
+_ANOMALY_REGISTRY_PATH = _PROJECT_ROOT / "sample_data" / "kabupaten_jatim.csv"
+_ANOMALY_SCHEMA_VERSION = "source-aware-anomaly/v1"
+_ANOMALY_SUPPORTED_COMMODITIES = frozenset({
+    "beras_premium", "beras_medium", "daging_ayam", "telur_ayam",
+    "bawang_merah", "bawang_putih", "cabai_rawit",
+})
+
+
+@functools.lru_cache(maxsize=1)
+def _anomaly_region_registry() -> dict[str, str]:
+    """Read the authoritative anomaly-only 38-region registry."""
+    try:
+        with _ANOMALY_REGISTRY_PATH.open(encoding="utf-8", newline="") as fh:
+            rows = list(csv.DictReader(fh))
+    except OSError as exc:
+        raise ValueError(f"registry wilayah anomali tidak tersedia: {exc}") from exc
+    registry = {str(row.get("kab_id", "")).strip(): str(row.get("nama", "")).strip()
+                for row in rows}
+    if len(registry) != 38 or any(not city_id or not name for city_id, name in registry.items()):
+        raise ValueError("registry wilayah anomali harus berisi tepat 38 ID/nama unik")
+    if len(set(registry.values())) != 38:
+        raise ValueError("registry wilayah anomali memiliki nama duplikat")
+    return registry
+
+
+def _normalise_region_name(value: str) -> str:
+    return " ".join(value.casefold().split())
+
+
+def _resolve_anomaly_region(
+    kabupaten_id: Optional[str], kabupaten_name: Optional[str],
+) -> tuple[Optional[str], Optional[str], Optional[list[str]]]:
+    """Resolve only exact anomaly-region IDs or names; never choose a nearest city."""
+    registry = _anomaly_region_registry()
+    if kabupaten_id is not None and str(kabupaten_id) in registry:
+        city_id = str(kabupaten_id)
+        return city_id, registry[city_id], None
+    if not kabupaten_name:
+        return None, None, None
+    name = _normalise_region_name(kabupaten_name)
+    ambiguous = {"kediri", "malang", "probolinggo", "madiun"}
+    if name in ambiguous:
+        label = name.title()
+        return None, None, [f"Kabupaten {label}", f"Kota {label}"]
+    matches = [
+        (city_id, city_name) for city_id, city_name in registry.items()
+        if _normalise_region_name(city_name) == name
+    ]
+    # The registry records Kabupaten Kediri as "Kediri"; accepting the
+    # explicit administrative prefix makes the ambiguity response actionable
+    # without admitting partial or nearest-name matches.
+    if not matches and name.startswith("kabupaten "):
+        county_name = name.removeprefix("kabupaten ")
+        matches = [
+            (city_id, city_name) for city_id, city_name in registry.items()
+            if not city_name.casefold().startswith("kota ")
+            and _normalise_region_name(city_name) == county_name
+        ]
+    return (*matches[0], None) if len(matches) == 1 else (None, None, None)
+
+
+def _load_anomaly_artifact() -> dict:
+    """Read only a complete versioned artifact, never detector internals."""
+    try:
+        with _ANOMALIES_PATH.open(encoding="utf-8") as fh:
+            artifact = json.load(fh)
+    except (OSError, json.JSONDecodeError):
+        return {}
+    required = {"schema_version", "generated_at", "method", "active_source_policy",
+                "series_statuses", "events"}
+    if (not isinstance(artifact, dict)
+            or artifact.get("schema_version") != _ANOMALY_SCHEMA_VERSION
+            or not required.issubset(artifact)
+            or not isinstance(artifact["series_statuses"], list)
+            or not isinstance(artifact["events"], list)):
+        return {}
+    return artifact
 
 
 def _load_json_file(path: Path) -> list:
@@ -394,14 +473,11 @@ def handle_forecast(intent: Intent, data: EngineData) -> str:
             "Contoh: \"Prediksi harga cabai rawit Surabaya\""
         )
 
-    # Resolve IHK city_id
+    # Resolve city_id (38 kabupaten/kota since active Siskaperbapo history)
     city_id = _resolve_city_id(kab_id, kab_name)
     if city_id is None:
-        available_cities = "Jember, Banyuwangi, Sumenep, Kota Kediri, "
-        available_cities += "Kota Malang, Kota Probolinggo, Kota Madiun, Kota Surabaya"
         return (
-            "Data historis harga tersedia untuk 8 kota IHK Jawa Timur:\n"
-            + available_cities + ".\n"
+            "Data historis harga tersedia untuk 38 kabupaten/kota Jawa Timur.\n"
             "Contoh: \"Prediksi harga bawang merah Surabaya\""
         )
 
@@ -456,60 +532,99 @@ def handle_forecast(intent: Intent, data: EngineData) -> str:
 # HANDLER: anomali — recent price anomalies from precomputed file
 # =============================================================================
 
-def handle_anomali(intent: Intent, data: EngineData) -> str:
-    """Return a summary of the most recent detected price anomalies."""
-    commodity = intent.commodity
-    kab_name  = intent.kabupaten_name
-    # Map engine commodity code → IHK price-history code
-    if commodity:
-        commodity = _ENGINE_TO_IHK.get(commodity, commodity)
-
-    records = _load_json_file(_ANOMALIES_PATH)
-    if not records:
+def _format_anomaly_status(status: dict, events: list[dict], policy: str) -> str:
+    """Render lineage for a single series without treating unavailable as no-event."""
+    city_name = status.get("city_name") or status.get("city_id", "wilayah")
+    commodity = _COMMODITY_DISPLAY.get(status.get("commodity_code", ""),
+                                       status.get("commodity_code", "komoditas"))
+    state = status["series_status"]
+    if state == "OUT_OF_COVERAGE":
         return (
-            "Data anomali belum tersedia.  "
-            "Silakan hubungi admin untuk menjalankan precompute."
+            f"Data anomali untuk {commodity} belum tercakup (OUT_OF_COVERAGE).\n"
+            "Kode komoditas yang diminta tidak diganti dengan komoditas lain."
         )
 
-    # Filter
-    filtered = records
-    if commodity and commodity in _FORECAST_COMMODITIES:
-        filtered = [r for r in filtered if r["commodity_code"] == commodity]
-    if kab_name:
-        city_id = _resolve_city_id(None, kab_name)
-        if city_id:
-            filtered = [r for r in filtered if r["city_id"] == city_id]
-
-    if not filtered:
-        com_label = _COMMODITY_DISPLAY.get(commodity or "", commodity or "")
-        return (
-            f"Tidak ada anomali terdeteksi untuk "
-            f"{com_label or 'komoditas ini'}"
-            f"{' di ' + kab_name if kab_name else ''}."
-        )
-
-    # Already sorted by score desc; take top 5 most recent by date in top 100
-    top_pool = filtered[:100]
-    top_pool.sort(key=lambda r: r["date"], reverse=True)
-    top5 = top_pool[:5]
-
-    com_label = (
-        _COMMODITY_DISPLAY.get(commodity or "", commodity or "semua komoditas")
-        if commodity
-        else "semua komoditas"
+    counts = status.get("active_history_source_counts", {})
+    source_line = (
+        f"Sumber aktif: SISKAPERBAPO={counts.get('SISKAPERBAPO', 0)}, "
+        f"PIHPS={counts.get('PIHPS', 0)}; terbaru: "
+        f"{status.get('latest_observation_source') or 'belum tersedia'}"
     )
-    city_label = kab_name or "semua kota"
-    lines = [f"Anomali harga {com_label} di {city_label} (terbaru):"]
-    for a in top5:
-        sign   = "+" if a["deviation_pct"] >= 0 else ""
-        badge  = "SPIKE" if a["type"] == "SPIKE" else "DROP"
+    metadata = [
+        f"Status anomali {commodity} di {city_name}: {state}",
+        f"Observasi: {status.get('observation_count', 0)}; "
+        f"data terakhir: {status.get('latest_observation_date') or 'belum tersedia'}",
+        source_line,
+        f"Confidence riwayat: {status.get('history_confidence') or 'belum tersedia'}; "
+        f"kebijakan sumber: {policy}",
+    ]
+    if state != "DETECTABLE":
+        return "\n".join(metadata + [
+            "Riwayat belum tersedia atau belum cukup untuk deteksi; status ini tidak menyatakan hasil detektor."
+        ])
+    if not events:
+        return "\n".join(metadata + ["Tidak ada event detector pada riwayat yang dapat dideteksi."])
+
+    lines = metadata + [f"Event detector: {len(events)}"]
+    for event in sorted(events, key=lambda item: item.get("date", ""), reverse=True)[:5]:
+        provenance = event.get("observation_provenance") or {}
+        source = provenance.get("data_source", "tidak tersedia")
+        sign = "+" if event.get("deviation_pct", 0) >= 0 else ""
         lines.append(
-            f"• {a['date']} | {badge} | {_idr(a['price'])}/kg "
-            f"| deviasi {sign}{a['deviation_pct']:.1f}% "
-            f"| {a['city_name']} ({a['commodity_code']})"
+            f"• {event.get('date')} | {event.get('type', 'EVENT')} | "
+            f"{_idr(event.get('price', 0))}/kg | deviasi "
+            f"{sign}{event.get('deviation_pct', 0):.1f}% | sumber event: {source}"
         )
-    lines.append(f"\nTotal anomali: {len(filtered)}")
     return "\n".join(lines)
+
+
+def handle_anomali(intent: Intent, data: EngineData) -> str:
+    """Return source-aware anomaly status/event information from the offline artifact."""
+    # Unlike forecast, anomaly commodity and region resolution must never map a
+    # requested code/name to a closest available series.
+    commodity = intent.commodity or intent.commodity_raw
+    try:
+        city_id, city_name, ambiguity = _resolve_anomaly_region(
+            intent.kabupaten_id, intent.kabupaten_name,
+        )
+    except ValueError:
+        return "Data anomali belum tersedia. Silakan hubungi admin untuk menjalankan precompute."
+    if ambiguity:
+        return (
+            "Nama wilayah ambigu. Pilih salah satu: " + " atau ".join(ambiguity) + ".\n"
+            "Anda juga dapat mengirim ID wilayah yang tepat."
+        )
+    if intent.kabupaten_id or intent.kabupaten_name:
+        if city_id is None:
+            return "Wilayah anomali tidak dikenali. Kirim ID atau nama wilayah lengkap yang valid."
+    if city_id is None or commodity is None:
+        return (
+            "Mohon sebutkan komoditas dan ID/nama wilayah lengkap untuk status anomali.\n"
+            "Contoh: \"Anomali bawang merah di Kota Surabaya\""
+        )
+
+    artifact = _load_anomaly_artifact()
+    if not artifact:
+        return "Data anomali belum tersedia. Silakan hubungi admin untuk menjalankan precompute."
+    if commodity not in _ANOMALY_SUPPORTED_COMMODITIES:
+        status = {
+            "city_id": city_id, "city_name": city_name, "commodity_code": commodity,
+            "series_status": "OUT_OF_COVERAGE",
+        }
+        return _format_anomaly_status(status, [], artifact["active_source_policy"])
+
+    status = next(
+        (item for item in artifact["series_statuses"]
+         if str(item.get("city_id")) == city_id and item.get("commodity_code") == commodity),
+        None,
+    )
+    if status is None:
+        return "Data anomali tidak valid: status seri yang diminta tidak tersedia."
+    events = [
+        item for item in artifact["events"]
+        if str(item.get("city_id")) == city_id and item.get("commodity_code") == commodity
+    ]
+    return _format_anomaly_status(status, events, artifact["active_source_policy"])
 
 
 # =============================================================================

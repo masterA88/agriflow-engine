@@ -86,6 +86,10 @@ def load_anomaly_keys(
         return set()
     with p.open(encoding="utf-8") as fh:
         records = json.load(fh)
+    # Source-aware artifact (schema v2+) wraps the flat event list in a dict
+    # under "events"; older scans were a bare list. Accept both.
+    if isinstance(records, dict):
+        records = records.get("events", [])
     return recent_anomaly_keys(
         records, as_of=as_of, window_days=window_days,
         persistent_only=persistent_only,
@@ -99,5 +103,7 @@ def latest_anomaly_date(path: str | Path) -> Optional[_dt.date]:
         return None
     with p.open(encoding="utf-8") as fh:
         records = json.load(fh)
+    if isinstance(records, dict):
+        records = records.get("events", [])
     dates = [_parse_date(r["date"]) for r in records if r.get("date")]
     return max(dates) if dates else None

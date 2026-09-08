@@ -255,6 +255,7 @@ def _cors_config() -> Dict[str, Any]:
     """
     origins = [
         "http://localhost:3000", "http://127.0.0.1:3000",
+        "http://localhost:3001", "http://127.0.0.1:3001",
         "https://agriflow-engine.vercel.app",
     ]
     extra = os.environ.get("CORS_ALLOWED_ORIGINS", "")
@@ -910,11 +911,19 @@ def _load_forecasts() -> list:
 
 @functools.lru_cache(maxsize=1)
 def _load_anomalies() -> list:
-    """Load anomalies_all.json once and cache in-process."""
+    """Load anomalies_all.json once and cache in-process.
+
+    The source-aware scan (schema v2+) stores the flat event records under an
+    "events" key alongside series_statuses; older scans were a bare list.
+    Return the event list either way so callers can treat it as a list.
+    """
     if not os.path.exists(_ANOMALIES_PATH):
         return []
     with open(_ANOMALIES_PATH, encoding="utf-8") as fh:
-        return _json.load(fh)
+        data = _json.load(fh)
+    if isinstance(data, dict):
+        return data.get("events", [])
+    return data
 
 
 @app.get("/api/v1/forecast")
@@ -1474,10 +1483,19 @@ async def api_simulate_presets() -> JSONResponse:
 
 @_functools.lru_cache(maxsize=1)
 def _price_series_map():
-    """(commodity_code, city_id) -> [(date, price)] from the vendored PIHPS files."""
-    from analysis.price_anomaly import _load_all_rows
+    """(commodity_code, city_id) -> [(date, price)] from the active source-aware series (Siskaperbapo first, PIHPS fallback)."""
+    from collections import defaultdict
+    from db.price_ingest import load_source_price_history_csvs, select_active_prices
     try:
-        return _load_all_rows(_PRICE_HISTORY_DIR)
+        source_records = load_source_price_history_csvs(_PRICE_HISTORY_DIR)
+        active_records = select_active_prices(source_records)
+        series_map = defaultdict(list)
+        for record in active_records:
+            key = (record["commodity_code"], str(record["city_id"]))
+            series_map[key].append((record["date"], float(record["price_per_kg"])))
+        for pts in series_map.values():
+            pts.sort(key=lambda x: x[0])
+        return dict(series_map)
     except FileNotFoundError:
         return {}
 
@@ -1508,7 +1526,7 @@ async def api_price_history(
         "commodity_code": commodity,
         "city_id": city_id,
         "city_name": data.kabupaten[city_id].nama if city_id in data.kabupaten else city_id,
-        "source": "PIHPS (vendored, sample_data/price_history)",
+        "source": "SISKAPERBAPO-first + PIHPS (sample_data/price_history)",
         "history_end_date": series[-1][0].isoformat(),
         "n": len(tail),
         "points": [{"date": d.isoformat(), "price": round(float(p), 2)} for d, p in tail],

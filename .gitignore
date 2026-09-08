@@ -166,3 +166,9 @@ dashboard/README.md
 
 # Local subscription/quota state (JSON quota backend)
 .state/
+
+# Siskaperbapo scraper output (raw, 20 MB+ per commodity): keep out of git, derive price_history/*.csv instead
+sample_data/raw_data/
+agriflow-update/*.csv
+!agriflow-update/komoditas_list.csv
+*.progress.json

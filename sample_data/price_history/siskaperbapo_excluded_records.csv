@@ -1,0 +1,29 @@
+tanggal,kab_kota,pasar,komoditas_id,komoditas_nama,harga,reason
+2025-11-29,Kabupaten Tulungagung,Pasar Bandung,16,Telur Ayam Ras / kg,280,CONFIRMED_SOURCE_INPUT_ERROR
+2024-12-30,Kabupaten Ponorogo,Pasar Legi,16,Telur Ayam Ras / kg,3000,CONFIRMED_SOURCE_INPUT_ERROR
+2024-12-31,Kabupaten Ponorogo,Pasar Legi,16,Telur Ayam Ras / kg,3000,CONFIRMED_SOURCE_INPUT_ERROR
+2025-01-01,Kabupaten Ponorogo,Pasar Legi,16,Telur Ayam Ras / kg,3000,CONFIRMED_SOURCE_INPUT_ERROR
+2024-07-20,Kabupaten Ponorogo,Pasar Sumoroto,16,Telur Ayam Ras / kg,2600,CONFIRMED_SOURCE_INPUT_ERROR
+2024-07-21,Kabupaten Ponorogo,Pasar Sumoroto,16,Telur Ayam Ras / kg,2600,CONFIRMED_SOURCE_INPUT_ERROR
+2024-07-22,Kabupaten Ponorogo,Pasar Sumoroto,16,Telur Ayam Ras / kg,2600,CONFIRMED_SOURCE_INPUT_ERROR
+2024-07-23,Kabupaten Ponorogo,Pasar Sumoroto,16,Telur Ayam Ras / kg,2600,CONFIRMED_SOURCE_INPUT_ERROR
+2024-07-24,Kabupaten Ponorogo,Pasar Sumoroto,16,Telur Ayam Ras / kg,2600,CONFIRMED_SOURCE_INPUT_ERROR
+2023-05-18,Kota Probolinggo,Pasar Wonoasih,16,Telur Ayam Ras / kg,3100,CONFIRMED_SOURCE_INPUT_ERROR
+2023-03-30,Kabupaten Ponorogo,Pasar Legi,16,Telur Ayam Ras / kg,2000,CONFIRMED_SOURCE_INPUT_ERROR
+2023-04-03,Kabupaten Situbondo,Pasar Sumber Kolak,16,Telur Ayam Ras / kg,6900,CONFIRMED_SOURCE_INPUT_ERROR
+2023-01-21,Kabupaten Tulungagung,Pasar Ngunut,16,Telur Ayam Ras / kg,2600,CONFIRMED_SOURCE_INPUT_ERROR
+2022-10-27,Kabupaten Banyuwangi,Pasar Jajag,16,Telur Ayam Ras / kg,2500,CONFIRMED_SOURCE_INPUT_ERROR
+2022-10-20,Kabupaten Banyuwangi,Pasar Jajag,16,Telur Ayam Ras / kg,2500,CONFIRMED_SOURCE_INPUT_ERROR
+2022-10-21,Kabupaten Banyuwangi,Pasar Jajag,16,Telur Ayam Ras / kg,2500,CONFIRMED_SOURCE_INPUT_ERROR
+2022-10-22,Kabupaten Banyuwangi,Pasar Jajag,16,Telur Ayam Ras / kg,2500,CONFIRMED_SOURCE_INPUT_ERROR
+2022-10-23,Kabupaten Banyuwangi,Pasar Jajag,16,Telur Ayam Ras / kg,2500,CONFIRMED_SOURCE_INPUT_ERROR
+2022-10-24,Kabupaten Banyuwangi,Pasar Jajag,16,Telur Ayam Ras / kg,2500,CONFIRMED_SOURCE_INPUT_ERROR
+2022-10-25,Kabupaten Banyuwangi,Pasar Jajag,16,Telur Ayam Ras / kg,2500,CONFIRMED_SOURCE_INPUT_ERROR
+2022-10-26,Kabupaten Banyuwangi,Pasar Jajag,16,Telur Ayam Ras / kg,2500,CONFIRMED_SOURCE_INPUT_ERROR
+2022-10-19,Kabupaten Banyuwangi,Pasar Jajag,16,Telur Ayam Ras / kg,2500,CONFIRMED_SOURCE_INPUT_ERROR
+2022-09-17,Kabupaten Lamongan,Pasar Sidoharjo,16,Telur Ayam Ras / kg,2700,CONFIRMED_SOURCE_INPUT_ERROR
+2022-06-26,Kabupaten Madiun,Pasar Dolopo,16,Telur Ayam Ras / kg,2000,CONFIRMED_SOURCE_INPUT_ERROR
+2022-01-27,Kabupaten Tulungagung,Pasar Ngemplak,16,Telur Ayam Ras / kg,2000,CONFIRMED_SOURCE_INPUT_ERROR
+2022-01-26,Kabupaten Tulungagung,Pasar Ngemplak,16,Telur Ayam Ras / kg,2000,CONFIRMED_SOURCE_INPUT_ERROR
+2021-08-16,Kota Madiun,Pasar Srijaya,16,Telur Ayam Ras / kg,2100,CONFIRMED_SOURCE_INPUT_ERROR
+2021-05-15,Kabupaten Kediri,Pasar Pamenang,16,Telur Ayam Ras / kg,2200,CONFIRMED_SOURCE_INPUT_ERROR
