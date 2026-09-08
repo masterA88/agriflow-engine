@@ -76,7 +76,7 @@ export default function TopBar({
             )}
           </button>
           {showNotif && (
-            <div className="absolute right-0 mt-2 w-[min(20rem,90vw)] bg-white border border-zinc-100 rounded-2xl shadow-xl py-2 z-50">
+            <div className="absolute right-0 mt-2 w-[min(20rem,90vw)] bg-white border border-zinc-100 rounded-2xl shadow-xl py-2 z-[1100]">
               <div className="px-4 py-2 border-b border-zinc-100 text-xs font-bold text-zinc-800">Terbaru dari data</div>
               <ul className="max-h-72 overflow-y-auto divide-y divide-zinc-100">
                 {notifications.length === 0 && <li className="px-4 py-6 text-xs text-zinc-400 text-center">Belum ada.</li>}
@@ -116,7 +116,7 @@ export default function TopBar({
             <Icons.ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
           </button>
           {showCommodity && (
-            <div className="absolute right-0 mt-2 w-52 bg-white border border-zinc-100 rounded-2xl shadow-xl py-1.5 z-50">
+            <div className="absolute right-0 mt-2 w-52 bg-white border border-zinc-100 rounded-2xl shadow-xl py-1.5 z-[1100]">
               <div className="px-3.5 py-2 text-[9px] font-bold text-zinc-400 border-b border-zinc-100 uppercase tracking-wider">
                 Komoditas dengan data BPS
               </div>
