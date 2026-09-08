@@ -60,7 +60,7 @@ Local development: put the same `SUPABASE_DB_URL` in the repo root `.env`, or le
 
 ## 4b. Demo data (seeded 2026-09-08, remove before selling anything)
 
-`db/seed/demo_telemetry_2026-09.sql` inserts 130 synthetic visitors over 14 days (about 4,950 events) so the Insight Permintaan tab and the sample report have something to show. Every demo row carries `app_version = 'demo-seed'` and `detail.source = 'demo'`. Before the first real report, purge and re-roll:
+`db/seed/demo_telemetry_2026-09.sql` inserts 220 synthetic visitors over 39 days, 1 August to 8 September 2026 (about 9,530 events) so the Insight Permintaan tab and the sample report have something to show. Every demo row carries `app_version = 'demo-seed'` and `detail.source = 'demo'`. Before the first real report, purge and re-roll:
 
 ```sql
 DELETE FROM intent_event WHERE app_version = 'demo-seed';
@@ -68,7 +68,7 @@ DELETE FROM intent_daily_agg;
 SELECT rollup_intent_daily(90);
 ```
 
-The sample report in `docs/Contoh_Laporan_Sinyal_Permintaan.pdf` (also served at `/insight/contoh-laporan-sinyal-permintaan.pdf`) was built from that seed by `tools/insight_report/build_report.py` and says so in red on page 1.
+The sample report in `docs/Contoh_Laporan_Sinyal_Permintaan.pdf` (also served at `/insight/contoh-laporan-sinyal-permintaan.pdf`) was built from that seed by `tools/insight_report/build_report.py`. At the founder's request it carries no simulation notice, so never hand it to a buyer as real data.
 
 ## 5. Reading the data
 

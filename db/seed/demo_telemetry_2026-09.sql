@@ -1,5 +1,5 @@
 
--- Demo seed: 130 synthetic visitors over 14 days. Tagged app_version='demo-seed' and
+-- Demo seed: 220 synthetic visitors over 39 days (2026-08-01 to 2026-09-08). Tagged app_version='demo-seed' and
 -- detail.source='demo' so they can be purged with one DELETE and never confused with real rows.
 DO $$
 DECLARE
@@ -16,15 +16,15 @@ BEGIN
   PERFORM setseed(0.42);
   SELECT array_agg(kid ORDER BY kid), array_agg(pop ORDER BY kid) INTO kabs, pops FROM (VALUES ('3578',2949496), ('3573',844614), ('3571',287609), ('3577',178540), ('3574',239649), ('3510',1719287), ('3529',1144719), ('3509',2606656), ('3501',592786), ('3502',956000), ('3503',733700), ('3504',1077500), ('3505',1213000), ('3506',1626100), ('3507',2716000), ('3508',1129500), ('3511',790180), ('3512',690600), ('3513',1208400), ('3514',1683700), ('3515',2185300), ('3516',1175000), ('3517',1357300), ('3518',1075800), ('3519',743200), ('3520',679000), ('3521',889600), ('3522',1357000), ('3523',1218000), ('3524',1378200), ('3525',1330000), ('3526',1062200), ('3527',984000), ('3528',892800), ('3572',148800), ('3575',211800), ('3576',146100), ('3579',213700)) v(kid, pop);
   SELECT sum(pop) INTO totpop FROM (VALUES ('3578',2949496), ('3573',844614), ('3571',287609), ('3577',178540), ('3574',239649), ('3510',1719287), ('3529',1144719), ('3509',2606656), ('3501',592786), ('3502',956000), ('3503',733700), ('3504',1077500), ('3505',1213000), ('3506',1626100), ('3507',2716000), ('3508',1129500), ('3511',790180), ('3512',690600), ('3513',1208400), ('3514',1683700), ('3515',2185300), ('3516',1175000), ('3517',1357300), ('3518',1075800), ('3519',743200), ('3520',679000), ('3521',889600), ('3522',1357000), ('3523',1218000), ('3524',1378200), ('3525',1330000), ('3526',1062200), ('3527',984000), ('3528',892800), ('3572',148800), ('3575',211800), ('3576',146100), ('3579',213700)) v(kid, pop);
-  FOR p IN 1..130 LOOP
+  FOR p IN 1..220 LOOP
     x := random() * totpop; acc := 0; home := kabs[1];
     FOR j IN 1..array_length(kabs,1) LOOP acc := acc + pops[j]; IF x <= acc THEN home := kabs[j]; EXIT; END IF; END LOOP;
     signed := random() < 0.15;
     ndays := 1 + floor(random() * random() * 6)::int;
-    FOR d IN 0..13 LOOP
-      day := DATE '2026-08-26' + d;
-      active := random() < (CASE WHEN extract(isodow FROM day) >= 6 THEN 0.10 ELSE 0.20 END) * ndays / 2.0;
-      IF d = 13 AND p <= 25 THEN active := true; END IF;
+    FOR d IN 0..38 LOOP
+      day := DATE '2026-08-01' + d;
+      active := random() < (CASE WHEN extract(isodow FROM day) >= 6 THEN 0.05 ELSE 0.10 END) * ndays / 2.0 * (0.6 + 0.4 * d / 38.0);
+      IF d = 38 AND p <= 30 THEN active := true; END IF;
       CONTINUE WHEN NOT active;
       tok := encode(sha256(('demo:' || p || ':' || day)::bytea), 'hex');
       sid := md5('demo-session:' || p || ':' || day)::uuid;

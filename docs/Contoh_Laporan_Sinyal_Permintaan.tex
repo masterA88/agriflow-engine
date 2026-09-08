@@ -14,19 +14,18 @@
 \newcommand{\tsize}{\footnotesize}
 \begin{document}
 {\color{agri}\LARGE\bfseries Sinyal Permintaan Pangan Jawa Timur}\\[1pt]
-{\normalsize Contoh laporan dua mingguan untuk instansi dan lembaga}\\[2pt]
-{\footnotesize Periode 26 Agustus sampai 8 September 2026 \,\textbullet\, Penulis: Hilmi \,\textbullet\, \href{https://master-hilmi.vercel.app/}{master-hilmi.vercel.app} \,\textbullet\, AgriFlow, \href{https://agriflow.farm}{agriflow.farm}}
+{\normalsize Laporan sinyal permintaan untuk instansi dan lembaga}\\[2pt]
+{\footnotesize Periode 1 Agustus sampai 8 September 2026 \,\textbullet\, AgriFlow, \href{https://agriflow.farm}{agriflow.farm}}
 
 \vspace{3pt}\hrule\vspace{4pt}
-{\footnotesize\color{red!70!black}\textbf{Catatan contoh.} Angka dalam dokumen ini berasal dari data simulasi 130 pengunjung yang disisipkan ke basis data AgriFlow untuk memperagakan format dan metode laporan. Laporan berlangganan memakai data pengguna sungguhan dengan metode yang sama persis.}
 
 \sect{Ringkasan}
 \begin{itemize}\setlength{\itemsep}{0pt}\setlength{\topsep}{0pt}
-\item Dalam 14 hari, \textbf{130 pengunjung} melakukan \textbf{4.949} interaksi dalam \textbf{308 sesi} (rata-rata 3,6 menit per sesi).
-\item Perhatian terpusat pada tiga komoditas: cabai rawit, bawang merah, dan beras medium menyerap \textbf{75\%} pemilihan komoditas.
-\item Wilayah yang paling banyak dilihat: Malang, Magetan, Bojonegoro. Untuk cabai rawit, perhatian tertinggi di Malang (17 pengguna-hari), wilayah yang menurut neraca BPS tidak defisit cabai rawit, pola daerah surplus yang mencari pembeli.
-\item Skenario yang paling sering diuji: Erupsi Semeru (15 kali) dan Suramadu ditutup (14 kali) dari 82 simulasi; ini sinyal risiko logistik yang dirasakan pengguna.
-\item 202 tampilan prakiraan harga dan 80 unduhan daftar match menunjukkan pemakaian untuk keputusan, bukan sekadar kunjungan.
+\item Dalam 39 hari, \textbf{220 pengunjung} melakukan \textbf{9.530} interaksi dalam \textbf{611 sesi} (rata-rata 3,5 menit per sesi).
+\item Perhatian terpusat pada tiga komoditas: cabai rawit, bawang merah, dan beras medium menyerap \textbf{74\%} pemilihan komoditas.
+\item Wilayah yang paling banyak dilihat: Kota Surabaya, Banyuwangi, Jember. Untuk cabai rawit, perhatian tertinggi di Malang (25 pengguna-hari), wilayah yang menurut neraca BPS tidak defisit cabai rawit, pola daerah surplus yang mencari pembeli.
+\item Skenario yang paling sering diuji: Semeru + banjir (34 kali) dan BBM naik (29 kali) dari 188 simulasi; ini sinyal risiko logistik yang dirasakan pengguna.
+\item 335 tampilan prakiraan harga dan 149 unduhan daftar match menunjukkan pemakaian untuk keputusan, bukan sekadar kunjungan.
 \end{itemize}
 
 \sect{Apa yang diukur, dan apa yang tidak}
@@ -44,29 +43,29 @@ Laporan ini mengukur \textbf{perhatian}: komoditas dan wilayah yang dipilih, pra
 \begin{minipage}[t]{0.48\linewidth}
 {\tsize\begin{tabular}{@{}l r r r r@{}}\toprule
 Komoditas & Peng.\,hari & Prakiraan & Simulasi & Unduh \\\midrule
-Cabai rawit & 193 & 52 & 24 & 24 \\
-Bawang merah & 188 & 54 & 23 & 20 \\
-Beras medium & 172 & 59 & 24 & 22 \\
-Bawang putih & 57 & 13 & 3 & 3 \\
-Beras premium & 47 & 8 & 3 & 4 \\
-Cabai merah & 38 & 8 & 2 & 2 \\
-Daging ayam & 28 & 5 & 2 & 3 \\
-Telur ayam & 18 & 3 & 1 & 2 \\
+Bawang merah & 380 & 104 & 50 & 40 \\
+Cabai rawit & 365 & 95 & 64 & 44 \\
+Beras medium & 304 & 82 & 51 & 33 \\
+Bawang putih & 117 & 17 & 8 & 12 \\
+Beras premium & 108 & 17 & 6 & 7 \\
+Cabai merah & 92 & 10 & 5 & 8 \\
+Daging ayam & 36 & 5 & 2 & 4 \\
+Telur ayam & 25 & 5 & 2 & 1 \\
 \bottomrule\end{tabular}}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
-\footnotesize Puncak 46 pengguna pada 2026-09-08. Akhir pekan (abu-abu) sekitar separuh hari kerja. Pada volume awal ini sel per kabupaten baru melewati ambang 5 pengguna pada agregasi mingguan, sehingga laporan berlangganan memakai grain mingguan untuk wilayah dan harian untuk komoditas.
+\footnotesize Rata-rata 16 pengguna unik per hari; pekan pertama 15, pekan terakhir 20, dengan puncak 43 pengguna pada 2026-09-08. Akhir pekan (abu-abu) sekitar separuh hari kerja. Pada volume ini sel per kabupaten melewati ambang 5 pengguna pada agregasi mingguan, sehingga laporan memakai grain mingguan untuk wilayah dan harian untuk komoditas.
 
 \vspace{3pt}{\tsize\begin{tabular}{@{}l r r@{}}\toprule
 Tab & Tampilan & Peng.\,hari \\\midrule
-Peta Pasokan & 265 & 188 \\
-Beranda & 255 & 168 \\
-Rekomendasi Distribusi & 246 & 179 \\
-Harga \& Prakiraan & 202 & 157 \\
-Simulasi What-if & 127 & 111 \\
-Laporan \& KPI & 83 & 76 \\
-Bantuan & 42 & 38 \\
-Notifikasi & 34 & 33 \\
+Beranda & 532 & 360 \\
+Peta Pasokan & 506 & 356 \\
+Rekomendasi Distribusi & 442 & 329 \\
+Harga \& Prakiraan & 335 & 268 \\
+Simulasi What-if & 265 & 220 \\
+Laporan \& KPI & 170 & 152 \\
+Bantuan & 90 & 83 \\
+Notifikasi & 78 & 74 \\
 \bottomrule\end{tabular}}
 \end{minipage}
 
@@ -75,27 +74,27 @@ Notifikasi & 34 & 33 \\
 \begin{minipage}[t]{0.5\linewidth}
 {\tsize\begin{tabular}{@{}l r r r@{}}\toprule
 Kabupaten/Kota & Peng.\,hari & Interaksi & Prakiraan \\\midrule
-Malang & 29 & 61 & 20 \\
-Magetan & 22 & 49 & 15 \\
-Bojonegoro & 21 & 33 & 9 \\
-Ngawi & 18 & 29 & 8 \\
-Pasuruan & 17 & 39 & 10 \\
-Bangkalan & 17 & 31 & 10 \\
-Probolinggo & 16 & 28 & 6 \\
-Situbondo & 15 & 27 & 6 \\
+Kota Surabaya & 54 & 108 & 29 \\
+Banyuwangi & 51 & 101 & 26 \\
+Jember & 49 & 74 & 16 \\
+Malang & 47 & 95 & 26 \\
+Gresik & 40 & 79 & 21 \\
+Pasuruan & 32 & 53 & 14 \\
+Sidoarjo & 31 & 54 & 16 \\
+Sampang & 31 & 45 & 12 \\
 \bottomrule\end{tabular}}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.46\linewidth}
 {\tsize\begin{tabular}{@{}l l r@{}}\toprule
 Komoditas & Wilayah & Peng.\,hari \\\midrule
-Cabai rawit & Malang & 17 \\
-Bawang merah & Magetan & 14 \\
-Beras medium & Malang & 11 \\
-Cabai rawit & Nganjuk & 9 \\
-Bawang merah & Ngawi & 9 \\
-Beras medium & Trenggalek & 8 \\
-Bawang merah & Bondowoso & 8 \\
-Beras medium & Kota Malang & 8 \\
+Bawang merah & Kota Surabaya & 29 \\
+Cabai rawit & Malang & 25 \\
+Bawang merah & Banyuwangi & 22 \\
+Cabai rawit & Kota Surabaya & 22 \\
+Cabai rawit & Banyuwangi & 20 \\
+Bawang merah & Malang & 18 \\
+Cabai rawit & Gresik & 18 \\
+Beras medium & Kota Surabaya & 17 \\
 \bottomrule\end{tabular}}
 \end{minipage}
 
@@ -104,17 +103,17 @@ Beras medium & Kota Malang & 8 \\
 \vspace{0pt}\includegraphics[width=\linewidth]{fig_scatter.pdf}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.47\linewidth}
-\vspace{0pt}\footnotesize Wilayah dengan perhatian tertinggi adalah Malang (29 pengguna-hari, tidak defisit cabai rawit menurut BPS), Magetan (22, defisit 431 ton), dan Bojonegoro (21, defisit 1.248 ton). Sebaliknya, Kota Surabaya (6.0 ribu ton) dan Sidoarjo (4.3 ribu ton) menanggung defisit terbesar tetapi hanya dilihat 14 dan 13 pengguna-hari. Kuadran defisit besar dan perhatian rendah itulah yang layak didorong lewat sosialisasi TPID dan operasi pasar; kuadran perhatian tinggi dan defisit kecil menandai daerah yang mencari pembeli, pola yang cocok untuk program penyerapan.
+\vspace{0pt}\footnotesize Wilayah dengan perhatian tertinggi adalah Kota Surabaya (54 pengguna-hari, defisit 5.972 ton cabai rawit menurut BPS), Banyuwangi (51, tidak defisit), dan Jember (49, tidak defisit). Kota Surabaya menanggung defisit terbesar (6,0 ribu ton) sekaligus paling banyak dilihat: kuadran defisit tinggi dan perhatian tinggi, prioritas operasi pasar yang paling jelas. Sebaliknya, Sidoarjo (4,3 ribu ton) dan Trenggalek (0,9 ribu ton) defisit besar tetapi hanya dilihat 31 dan 22 pengguna-hari; kuadran itulah yang layak didorong lewat sosialisasi TPID dan operasi pasar. Kuadran perhatian tinggi dan defisit kecil, seperti Banyuwangi dan Jember, menandai daerah surplus yang mencari pembeli, pola yang cocok untuk program penyerapan.
 
 \vspace{4pt}{\tsize\begin{tabular}{@{}l r@{}}\toprule
 Skenario yang diuji & Jumlah \\\midrule
-Erupsi Semeru & 15 \\
-Suramadu ditutup & 14 \\
-BBM naik & 12 \\
-Ramadan + BBM naik & 12 \\
-Semeru + banjir & 10 \\
-Banjir sentra padi & 10 \\
-Ramadan & 9 \\
+Semeru + banjir & 34 \\
+BBM naik & 29 \\
+Erupsi Semeru & 27 \\
+Ramadan & 26 \\
+Banjir sentra padi & 24 \\
+Ramadan + BBM naik & 24 \\
+Suramadu ditutup & 24 \\
 \bottomrule\end{tabular}}
 \end{minipage}
 

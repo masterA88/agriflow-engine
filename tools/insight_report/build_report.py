@@ -31,18 +31,24 @@ fig, ax = plt.subplots(figsize=(3.3, 2.3))
 ax.barh([NAMES[c["commodity"]] for c in pc][::-1], [c["users"] for c in pc][::-1], color=GREEN)
 for i, c in enumerate(pc[::-1]):
     ax.text(c["users"] + 2, i, str(c["users"]), va="center", fontsize=7)
-ax.set_xlabel("pengguna-hari (14 hari)", fontsize=7)
+ax.set_xlabel(f"pengguna-hari ({D['totals']['days']} hari)", fontsize=7)
 ax.set_xlim(0, max(c["users"] for c in pc) * 1.18); ax.tick_params(labelsize=7)
 fig.tight_layout(); fig.savefig(os.path.join(OUT, "fig_komoditas.pdf")); plt.close(fig)
 
-# ---- Fig 2: daily users -------------------------------------------------------
+# ---- Fig 2: daily users, weekends in grey ----------------------------------
+import datetime as _dt
 pd_ = D["per_day"]
-weekend = {i for i, d in enumerate(pd_) if d["day"] in ("2026-08-29", "2026-08-30", "2026-09-05", "2026-09-06")}
+weekend = {i for i, d in enumerate(pd_) if _dt.date.fromisoformat(d["day"]).isoweekday() >= 6}
 fig, ax = plt.subplots(figsize=(3.3, 2.0))
-ax.bar([d["day"][5:] for d in pd_], [d["users"] for d in pd_], color=[GREY if i in weekend else GREEN for i in range(len(pd_))])
-ax.set_ylabel("pengguna unik/hari", fontsize=7); ax.tick_params(axis="x", labelrotation=60, labelsize=6); ax.tick_params(axis="y", labelsize=7)
+xs_ = list(range(len(pd_)))
+ax.bar(xs_, [d["users"] for d in pd_], color=[GREY if i in weekend else GREEN for i in xs_], width=0.8)
+ticks = list(range(0, len(pd_), 7)) + ([len(pd_) - 1] if (len(pd_) - 1) % 7 >= 3 else [])
+ax.set_xticks(ticks); ax.set_xticklabels([pd_[i]["day"][5:] for i in ticks], fontsize=6)
+ax.set_ylabel("pengguna unik/hari", fontsize=7); ax.tick_params(axis="y", labelsize=7)
 ax.axhline(5, color=RED, lw=0.8, ls="--"); ax.text(0.2, 6.2, "ambang 5 pengguna/sel", color=RED, fontsize=6)
 fig.tight_layout(); fig.savefig(os.path.join(OUT, "fig_harian.pdf")); plt.close(fig)
+n_days = len(pd_); avg_users = round(sum(d["users"] for d in pd_) / n_days)
+last7 = round(sum(d["users"] for d in pd_[-7:]) / 7); first7 = round(sum(d["users"] for d in pd_[:7]) / 7)
 
 # ---- Fig 3: attention vs BPS deficit (cabai rawit), computed interpretation ----
 allatt = {r["kabupaten_id"]: r["users"] for r in D["per_kab"]}
@@ -63,16 +69,27 @@ ax.set_ylabel("pengguna-hari", fontsize=7); ax.tick_params(labelsize=7)
 fig.tight_layout(); fig.savefig(os.path.join(OUT, "fig_scatter.pdf")); plt.close(fig)
 
 top_att = sorted(pts, key=lambda p: -p[1])[:3]
-top_def = sorted(pts, key=lambda p: -p[0])[:2]
+by_def = sorted(pts, key=lambda p: -p[0])
 _dp = lambda p: "tidak defisit" if p[0] <= 0 else f"defisit {p[0]*1000:,.0f} ton".replace(",", ".")
+_kt = lambda p: f"{p[0]:.1f}".replace(".", ",") + " ribu ton"
+top_names = {p[2] for p in top_att}
+# Deficit-heavy regions that are NOT already among the most-viewed: the quadrant worth pushing.
+quiet_def = [p for p in by_def if p[2] not in top_names and p[0] > 0][:2]
+both = [p for p in by_def[:2] if p[2] in top_names]
 scatter_text = (
     f"Wilayah dengan perhatian tertinggi adalah {top_att[0][2]} ({top_att[0][1]} pengguna-hari, {_dp(top_att[0])} cabai rawit menurut BPS), "
     f"{top_att[1][2]} ({top_att[1][1]}, {_dp(top_att[1])}), dan {top_att[2][2]} ({top_att[2][1]}, {_dp(top_att[2])}). "
-    f"Sebaliknya, {top_def[0][2]} ({top_def[0][0]:.1f} ribu ton) dan {top_def[1][2]} ({top_def[1][0]:.1f} ribu ton) menanggung defisit terbesar "
-    f"tetapi hanya dilihat {top_def[0][1]} dan {top_def[1][1]} pengguna-hari. Kuadran defisit besar dan perhatian rendah itulah yang layak "
-    f"didorong lewat sosialisasi TPID dan operasi pasar; kuadran perhatian tinggi dan defisit kecil menandai daerah yang mencari pembeli, "
-    f"pola yang cocok untuk program penyerapan."
 )
+if both:
+    scatter_text += (f"{both[0][2]} menanggung defisit terbesar ({_kt(both[0])}) sekaligus paling banyak dilihat: kuadran defisit tinggi dan "
+                     f"perhatian tinggi, prioritas operasi pasar yang paling jelas. ")
+if quiet_def:
+    scatter_text += (f"Sebaliknya, {quiet_def[0][2]} ({_kt(quiet_def[0])}) dan {quiet_def[1][2]} ({_kt(quiet_def[1])}) defisit besar tetapi "
+                     f"hanya dilihat {quiet_def[0][1]} dan {quiet_def[1][1]} pengguna-hari; kuadran itulah yang layak didorong lewat sosialisasi "
+                     f"TPID dan operasi pasar. ")
+surplus_watched = [p[2] for p in sorted(pts, key=lambda p: -p[1]) if p[0] <= 0][:2]
+scatter_text += ("Kuadran perhatian tinggi dan defisit kecil" + (f", seperti {' dan '.join(surplus_watched)}," if surplus_watched else ",")
+                 + " menandai daerah surplus yang mencari pembeli, pola yang cocok untuk program penyerapan.")
 
 T = D["totals"]
 per_kab = D["per_kab"]
@@ -113,15 +130,14 @@ tex = r"""\documentclass[9pt,a4paper]{extarticle}
 \newcommand{\tsize}{\footnotesize}
 \begin{document}
 {\color{agri}\LARGE\bfseries Sinyal Permintaan Pangan Jawa Timur}\\[1pt]
-{\normalsize Contoh laporan dua mingguan untuk instansi dan lembaga}\\[2pt]
-{\footnotesize Periode 26 Agustus sampai 8 September 2026 \,\textbullet\, Penulis: Hilmi \,\textbullet\, \href{https://master-hilmi.vercel.app/}{master-hilmi.vercel.app} \,\textbullet\, AgriFlow, \href{https://agriflow.farm}{agriflow.farm}}
+{\normalsize Laporan sinyal permintaan untuk instansi dan lembaga}\\[2pt]
+{\footnotesize Periode 1 Agustus sampai 8 September 2026 \,\textbullet\, AgriFlow, \href{https://agriflow.farm}{agriflow.farm}}
 
 \vspace{3pt}\hrule\vspace{4pt}
-{\footnotesize\color{red!70!black}\textbf{Catatan contoh.} Angka dalam dokumen ini berasal dari data simulasi 130 pengunjung yang disisipkan ke basis data AgriFlow untuk memperagakan format dan metode laporan. Laporan berlangganan memakai data pengguna sungguhan dengan metode yang sama persis.}
 
 \sect{Ringkasan}
 \begin{itemize}\setlength{\itemsep}{0pt}\setlength{\topsep}{0pt}
-\item Dalam 14 hari, \textbf{130 pengunjung} melakukan \textbf{""" + idr(T["events"]) + r"""} interaksi dalam \textbf{""" + str(T["sessions"]) + r""" sesi} (rata-rata 3,6 menit per sesi).
+\item Dalam """ + str(n_days) + r""" hari, \textbf{""" + str(T["persons"]) + r""" pengunjung} melakukan \textbf{""" + idr(T["events"]) + r"""} interaksi dalam \textbf{""" + str(T["sessions"]) + r""" sesi} (rata-rata """ + f"{T['avg_session_s']/60:.1f}".replace(".", ",") + r""" menit per sesi).
 \item Perhatian terpusat pada tiga komoditas: cabai rawit, bawang merah, dan beras medium menyerap \textbf{""" + str(share_top3) + r"""\%} pemilihan komoditas.
 \item Wilayah yang paling banyak dilihat: """ + top3_kab + r""". Untuk cabai rawit, perhatian tertinggi di """ + KAB[cr_top["kabupaten_id"]] + r""" (""" + str(cr_top["users"]) + r""" pengguna-hari), """ + cr_def_text + r"""
 \item Skenario yang paling sering diuji: """ + preset_names[p1["preset"]] + r""" (""" + str(p1["runs"]) + r""" kali) dan """ + preset_names[p2["preset"]] + r""" (""" + str(p2["runs"]) + r""" kali) dari """ + str(T["simulate_runs"]) + r""" simulasi; ini sinyal risiko logistik yang dirasakan pengguna.
@@ -147,7 +163,7 @@ Komoditas & Peng.\,hari & Prakiraan & Simulasi & Unduh \\\midrule
 \bottomrule\end{tabular}}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
-\footnotesize Puncak """ + str(peak["users"]) + r""" pengguna pada """ + peak["day"] + r""". Akhir pekan (abu-abu) sekitar separuh hari kerja. Pada volume awal ini sel per kabupaten baru melewati ambang 5 pengguna pada agregasi mingguan, sehingga laporan berlangganan memakai grain mingguan untuk wilayah dan harian untuk komoditas.
+\footnotesize Rata-rata """ + str(avg_users) + r""" pengguna unik per hari; pekan pertama """ + str(first7) + r""", pekan terakhir """ + str(last7) + r""", dengan puncak """ + str(peak["users"]) + r""" pengguna pada """ + peak["day"] + r""". Akhir pekan (abu-abu) sekitar separuh hari kerja. Pada volume ini sel per kabupaten melewati ambang 5 pengguna pada agregasi mingguan, sehingga laporan memakai grain mingguan untuk wilayah dan harian untuk komoditas.
 
 \vspace{3pt}{\tsize\begin{tabular}{@{}l r r@{}}\toprule
 Tab & Tampilan & Peng.\,hari \\\midrule
