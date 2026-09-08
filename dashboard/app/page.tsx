@@ -54,8 +54,10 @@ const sources = [
     body: "Produksi dan konsumsi pangan, 38 kabupaten/kota, enam komoditas.",
   },
   {
-    name: "PIHPS",
-    body: "Harga pangan harian sebagai dasar prakiraan dan deteksi anomali.",
+    name: "Siskaperbapo + PIHPS",
+    body:
+      "Harga pangan harian untuk 38 kabupaten/kota (Siskaperbapo Jatim, PIHPS " +
+      "sebagai cadangan) sebagai dasar prakiraan dan deteksi anomali.",
   },
   {
     name: "IPM 2024",
@@ -78,7 +80,7 @@ export default function LandingPage() {
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-white/80">
             Pencocokan pasokan pangan untuk 38 kabupaten/kota dan enam komoditas,
-            dihitung optimal dari data resmi BPS dan PIHPS. Bukan kira-kira, dan
+            dihitung optimal dari data resmi BPS, Siskaperbapo, dan PIHPS. Bukan kira-kira, dan
             setiap rekomendasi bisa ditelusuri.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -88,7 +90,7 @@ export default function LandingPage() {
             </Link>
           </div>
           <p className="mt-5 text-xs text-white/60">
-            Data BPS 2022 · PIHPS harga harian · IPM 2024 &nbsp;·&nbsp; Engine v1.1.0 ·
+            Data BPS 2022 · Siskaperbapo + PIHPS harga harian 38 kabupaten/kota · IPM 2024 &nbsp;·&nbsp; Engine v1.1.0 ·
             544 uji otomatis lulus
           </p>
         </div>
