@@ -8,6 +8,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useCoreData, useDistribution, useRecentAnomalies } from "./hooks/useDashboardData";
 import type { Match } from "./lib/api";
 import { deriveNotifications, type NotificationItem } from "./lib/notifications";
+import { track } from "./lib/telemetry";
 import ExplainDrawer from "./components/ExplainDrawer";
 import Sidebar, { type TabKey } from "./components/Sidebar";
 import TopBar from "./components/TopBar";
@@ -45,9 +46,14 @@ export default function Home() {
   );
   const unread = notifications.filter((n) => !read.has(n.id)).length;
 
-  const go = useCallback((t: TabKey) => { setTab(t); window.scrollTo({ top: 0 }); }, []);
+  const go = useCallback((t: TabKey) => { setTab(t); window.scrollTo({ top: 0 }); track("tab_view", { detail: { tab: t } }); }, []);
+  const pickKab = useCallback((id: string | null, surface: string) => {
+    setSelectedKabId(id);
+    if (id) track("kabupaten_pick", { kabupaten_id: id, commodity, detail: { surface } });
+  }, [commodity]);
   const onNotificationAction = useCallback((n: NotificationItem) => {
     setRead((r) => new Set(r).add(n.id));
+    track("notification_click", { commodity: n.action?.commodity, kabupaten_id: n.action?.kabId, detail: { category: n.category, kind: n.type, target_tab: n.action?.tab ?? "" } });
     if (!n.action) return;
     if (n.action.commodity) setCommodity(n.action.commodity);
     if (n.action.tab === "harga" && n.action.kabId) setAnalysisCity(n.action.kabId);
@@ -74,7 +80,7 @@ export default function Home() {
           apiError={apiError}
           commodities={core.commodities}
           commodity={commodity}
-          onCommodity={(c) => { setCommodity(c); setSelectedKabId(null); }}
+          onCommodity={(c) => { setCommodity(c); setSelectedKabId(null); track("commodity_pick", { commodity: c, detail: { tab } }); }}
           notifications={notifications}
           unread={unread}
           onOpenNotifications={() => go("notifikasi")}
@@ -87,17 +93,17 @@ export default function Home() {
           <Beranda
             commodity={commodity} commodities={core.commodities} sd={dist.sd} matches={dist.matches}
             summary={core.summary} meta={core.meta} apiError={apiError} kabupaten={core.kabupaten}
-            selectedKabId={selectedKabId} onSelectKab={setSelectedKabId} onGo={go} onExplain={setExplain}
+            selectedKabId={selectedKabId} onSelectKab={(id) => pickKab(id, "beranda")} onGo={go} onExplain={setExplain}
             loading={dist.loading || core.loading}
           />
         )}
         {tab === "peta" && (
-          <PetaPasokan name={name} sd={dist.sd} matches={dist.matches} kabupaten={core.kabupaten} selectedKabId={selectedKabId} onSelectKab={setSelectedKabId} />
+          <PetaPasokan name={name} sd={dist.sd} matches={dist.matches} kabupaten={core.kabupaten} selectedKabId={selectedKabId} onSelectKab={(id) => pickKab(id, "peta")} />
         )}
         {tab === "distribusi" && (
           <Distribusi
             commodity={commodity} name={name} sd={dist.sd} matches={dist.matches} meta={core.meta} kabupaten={core.kabupaten}
-            selectedKabId={selectedKabId} onSelectKab={setSelectedKabId} onExplain={setExplain} loading={dist.loading} error={dist.error}
+            selectedKabId={selectedKabId} onSelectKab={(id) => pickKab(id, "distribusi")} onExplain={setExplain} loading={dist.loading} error={dist.error}
           />
         )}
         {tab === "simulasi" && (

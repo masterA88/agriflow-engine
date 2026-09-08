@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useAnalysis } from "../../hooks/useDashboardData";
+import { track } from "../../lib/telemetry";
 import type { Commodity, Kabupaten, Meta } from "../../lib/api";
 import { fmtDate } from "../../lib/format";
 import AnomalyPanel from "../AnomalyPanel";
@@ -36,6 +37,12 @@ export default function HargaTren({
   const setCode = (c: string) => setCodePick({ under: commodity, code: c });
 
   const a = useAnalysis(code, city);
+  useEffect(() => {
+    if (a.loading) return;
+    if (a.forecast) track("forecast_view", { commodity: code, kabupaten_id: city, detail: { method: a.forecast.method, n_points: a.forecast.forecasts.length } });
+    if (a.anomalies.length) track("anomaly_view", { commodity: code, kabupaten_id: city, detail: { n_anomalies: a.anomalyTotal } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [a.loading, code, city]);
   const cityName = cities.find((c) => c.id === city)?.nama ?? city;
 
   return (

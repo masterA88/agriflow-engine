@@ -172,3 +172,6 @@ sample_data/raw_data/
 agriflow-update/*.csv
 !agriflow-update/komoditas_list.csv
 *.progress.json
+
+# behaviour telemetry spool (only used when SUPABASE_DB_URL is unset)
+data/telemetry_spool.jsonl

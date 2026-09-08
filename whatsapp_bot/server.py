@@ -46,6 +46,7 @@ except ImportError as e:
     ) from e
 
 import csv as _csv
+import logging
 import dataclasses
 import datetime as _dt
 import glob as _glob
@@ -180,7 +181,7 @@ def _load_data_backend() -> dict:
 
 
 from . import billing
-from .auth import AuthUser, GatedUser, RequireUser, auth_configured, require_auth_enabled
+from .auth import AuthUser, GatedUser, OptionalUser, RequireUser, auth_configured, require_auth_enabled
 from .config import settings
 from .gemini_client import GeminiClient
 from .handlers import (
@@ -1531,6 +1532,67 @@ async def api_price_history(
         "n": len(tail),
         "points": [{"date": d.isoformat(), "price": round(float(p), 2)} for d, p in tail],
     })
+
+# =============================================================================
+# BEHAVIOUR TELEMETRY: /api/v1/events (ingest) and /api/v1/insight/demand
+#
+# The dashboard batches consented interaction events here. Everything personal
+# is stripped in whatsapp_bot.telemetry; the per-day token is computed server
+# side from the browser session id (or the signed-in user id) and a salt the
+# database forgets after two days. WhatsApp will post to the same store with
+# channel="whatsapp" once the ManyChat orchestrator lands; those rows never
+# reach the sold view demand_signal_export (enforced in SQL).
+# =============================================================================
+from whatsapp_bot import telemetry as _telemetry  # noqa: E402
+
+_tlog = logging.getLogger("agriflow.telemetry")
+telemetry_store = _telemetry.TelemetryStore(
+    db_url=settings.supabase_db_url, spool_path=settings.telemetry_spool,
+)
+
+
+@app.post("/api/v1/events", status_code=204)
+async def api_events(request: Request, user: AuthUser | None = OptionalUser) -> Response:
+    """Ingest a batch of behaviour events (max 20). Returns 204 with no body."""
+    try:
+        payload = await request.json()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="body must be JSON")
+    try:
+        events, meta = _telemetry.validate_batch(payload, channel="web")
+    except _telemetry.TelemetryError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    subject = getattr(user, "sub", None) or meta["session_id"]
+    if user is not None:
+        meta["signed_in"] = True
+    try:
+        n = telemetry_store.record(events, meta, subject_id=str(subject))
+        _tlog.info("telemetry.recorded n=%s channel=web signed_in=%s spool=%s",
+                   n, meta["signed_in"], not telemetry_store.enabled)
+    except Exception as exc:  # telemetry must never break the caller
+        _tlog.warning("telemetry.failed err=%s", type(exc).__name__)
+    return Response(status_code=204)
+
+
+@app.get("/api/v1/insight/demand")
+async def api_insight_demand(
+    commodity: Optional[str] = Query(None, description="Commodity code filter"),
+    days: int = Query(30, ge=1, le=365),
+    user: AuthUser | None = GatedUser,
+) -> JSONResponse:
+    """
+    Aggregated, k-anonymised demand signal from the web channel only. Reads the
+    SQL view demand_signal_export and nothing else, so this endpoint cannot
+    leak a WhatsApp-derived row or a cell under 5 unique users.
+    """
+    if not telemetry_store.enabled:
+        raise HTTPException(status_code=503, detail="insight store not configured")
+    rows = telemetry_store.demand_signal(commodity, days)
+    return JSONResponse({
+        "source": "first-party web events (consented) + BPS + engine outputs; cells < 5 unique users suppressed",
+        "channel": "web", "days": days, "commodity": commodity, "count": len(rows), "rows": rows,
+    })
+
 
 
 # =============================================================================

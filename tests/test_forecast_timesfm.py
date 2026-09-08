@@ -23,7 +23,7 @@ def test_timesfm_uses_dedicated_point_and_ordered_quantile_channels(monkeypatch)
     quantiles[0, :, 9] = [30.0, 31.0]
 
     class FakeModel:
-        def forecast(self, **_kwargs):
+        def forecast(self, *_args, **_kwargs):
             return np.array([[20.0, 21.0]]), quantiles
 
     monkeypatch.setattr(forecast_timesfm, "_load_timesfm_model", lambda _path: FakeModel())

@@ -177,6 +177,7 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
 HEAVY_PREFIXES: Tuple[str, ...] = (
     "/chat", "/whatsapp", "/billing/",
     "/api/v1/simulate", "/api/v1/matches/explain", "/api/v1/report.csv",
+    "/api/v1/events",
 )
 
 

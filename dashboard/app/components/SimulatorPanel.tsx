@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { api, type Match, type SimulateResponse } from "../lib/api";
 import { fmtPct, fmtTon, shortKab } from "../lib/format";
 import { Icons } from "./Icons";
+import { track } from "../lib/telemetry";
 
 const PRESET_ORDER = ["semeru", "banjir_sentra_padi", "banjir_madura", "suramadu_tutup", "ramadan", "bbm_20", "impor"];
 
@@ -38,6 +39,7 @@ export default function SimulatorPanel({
       const r = await api.simulate({ presets: [...chosen], bbm_pct: bbm, commodity, limit: 100 });
       setRes(r);
       onResult?.(r.matches, r.scenario.applied.unreachable_kab);
+      track("simulate_run", { commodity, detail: { presets: [...chosen].join(",") || "none", bbm_pct: bbm, n_matches: r.matches.length } });
     } catch (e) {
       setError((e as Error).message);
     } finally {

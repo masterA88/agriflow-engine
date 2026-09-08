@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Icons } from "../Icons";
+import { track } from "../../lib/telemetry";
 
 type FAQ = { q: string; a: string; category: "Peta & Data" | "Distribusi" | "Harga" | "Simulasi" | "WhatsApp" };
 
@@ -23,6 +24,12 @@ export default function Bantuan() {
     if (!k) return FAQS;
     return FAQS.filter((f) => f.q.toLowerCase().includes(k) || f.a.toLowerCase().includes(k) || f.category.toLowerCase().includes(k));
   }, [q]);
+  useEffect(() => {
+    const k = q.trim();
+    if (!k) return;
+    const t = setTimeout(() => track("faq_search", { detail: { query_len: k.length, result_count: shown.length, matched: shown.length > 0 } }), 800);
+    return () => clearTimeout(t);
+  }, [q, shown.length]);
   return (
     <div className="flex flex-col gap-4 max-w-4xl">
       <div>

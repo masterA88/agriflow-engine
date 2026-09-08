@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api, type ExplainResponse, type Match } from "../lib/api";
 import { fmtIdr, fmtTon, shortKab } from "../lib/format";
 import { Icons } from "./Icons";
+import { track } from "../lib/telemetry";
 
 type Loaded = { key: string; data: ExplainResponse | null; error: string | null };
 
@@ -23,7 +24,7 @@ export default function ExplainDrawer({ match, onClose }: { match: Match | null;
     const k = keyOf(match);
     let active = true;
     api.explain({ deficit_kab_id: match.deficit.kab_id, commodity: match.commodity_code, limit: 8 })
-      .then((d) => active && setLoaded({ key: k, data: d, error: null }))
+      .then((d) => { if (!active) return; setLoaded({ key: k, data: d, error: null }); track("explain_view", { commodity: match.commodity_code, kabupaten_id: match.deficit.kab_id, detail: { deficit_kab_id: match.deficit.kab_id } }); })
       .catch((e: Error) => active && setLoaded({ key: k, data: null, error: e.message }));
     return () => { active = false; };
   }, [match]);

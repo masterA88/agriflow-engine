@@ -4,6 +4,7 @@ import { api, type Commodity, type Meta, type Summary } from "../../lib/api";
 import { fmtDate, fmtDateTime, fmtIdr, fmtPct, fmtTon } from "../../lib/format";
 import { Icons } from "../Icons";
 import KpiCard from "../KpiCard";
+import { track } from "../../lib/telemetry";
 
 export default function Laporan({ summary, meta, commodities }: { summary: Summary | null; meta: Meta | null; commodities: Commodity[] }) {
   const t = summary?.totals;
@@ -25,7 +26,7 @@ export default function Laporan({ summary, meta, commodities }: { summary: Summa
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
           <span className="text-sm font-bold text-zinc-800">Neraca per komoditas</span>
-          <a href={api.reportCsvUrl()} download className="text-xs font-bold text-white bg-[#5b7245] hover:bg-[#4f643c] px-3 py-1.5 rounded-lg flex items-center gap-1.5"><Icons.Download className="w-3.5 h-3.5" /> Semua match (CSV)</a>
+          <a href={api.reportCsvUrl()} onClick={() => track("download", { detail: { kind: "report_csv_all" } })} download className="text-xs font-bold text-white bg-[#5b7245] hover:bg-[#4f643c] px-3 py-1.5 rounded-lg flex items-center gap-1.5"><Icons.Download className="w-3.5 h-3.5" /> Semua match (CSV)</a>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -53,7 +54,7 @@ export default function Laporan({ summary, meta, commodities }: { summary: Summa
                   <td className="px-3 py-2.5 text-right tabular-nums">{s.n_matches}{s.equity_boosted_matches ? <span className="text-[9px] text-[#b33c3c] ml-1">({s.equity_boosted_matches} equity)</span> : null}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums">{fmtPct(s.low_ipm_deficit_fulfillment_pct, 0)}</td>
                   <td className="px-3 py-2.5 text-zinc-500 max-w-[220px] truncate" title={s.unmatched_deficit_kab.join(", ")}>{s.unmatched_deficit_kab.length ? s.unmatched_deficit_kab.join(", ") : "semua terpasok"}</td>
-                  <td className="px-4 py-2.5 text-right"><a href={api.reportCsvUrl(code)} download className="text-[10px] font-bold text-[#5b7245] hover:underline">CSV</a></td>
+                  <td className="px-4 py-2.5 text-right"><a href={api.reportCsvUrl(code)} onClick={() => track("download", { commodity: code, detail: { kind: "report_csv" } })} download className="text-[10px] font-bold text-[#5b7245] hover:underline">CSV</a></td>
                 </tr>
               )) : (
                 <tr><td colSpan={9} className="px-4 py-6 text-center text-zinc-400">Memuat...</td></tr>

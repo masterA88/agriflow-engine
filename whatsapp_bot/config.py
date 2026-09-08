@@ -94,6 +94,12 @@ class Settings:
     # a message at 4096 characters; the intent parser needs far less.
     max_message_chars: int = int(os.getenv("MAX_MESSAGE_CHARS", "1000"))
 
+    # Behaviour telemetry (intent_event). Empty URL = spool to a local JSONL
+    # file and warn once; the UI never breaks, but events are not durable.
+    supabase_db_url: str = os.getenv("SUPABASE_DB_URL", "")
+    telemetry_spool: str = os.getenv("TELEMETRY_SPOOL", "data/telemetry_spool.jsonl")
+    consent_version: str = os.getenv("CONSENT_VERSION", "2026-09-v1")
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"

@@ -6,6 +6,7 @@ import { api, type Kabupaten, type Match, type Meta, type SurplusDeficitResponse
 import { fmtTon } from "../../lib/format";
 import { Icons } from "../Icons";
 import MatchCard from "../MatchCard";
+import { track } from "../../lib/telemetry";
 
 const MapView = dynamic(() => import("../MapView"), { ssr: false });
 
@@ -41,7 +42,7 @@ export default function Distribusi({
           {selectedKabId && (
             <button onClick={() => onSelectKab(null)} className="bg-white text-[#5b7245] px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm">Filter: {kabName} ✕</button>
           )}
-          <a href={api.reportCsvUrl(commodity)} className="bg-white text-zinc-800 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5" download>
+          <a href={api.reportCsvUrl(commodity)} onClick={() => track("download", { commodity, detail: { kind: "report_csv" } })} className="bg-white text-zinc-800 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5" download>
             <Icons.Download className="w-3.5 h-3.5" /> CSV
           </a>
         </div>

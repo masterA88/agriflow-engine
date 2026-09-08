@@ -56,6 +56,14 @@ def gemini():
 # A. Precomputed file integrity
 # =============================================================================
 
+def _anomaly_events() -> list:
+    """Flat event list from either artifact schema: v1 bare list, or the
+    source-aware v2 dict that keeps the records under "events"."""
+    with ANOMALIES_PATH.open(encoding="utf-8") as fh:
+        data = json.load(fh)
+    return data.get("events", []) if isinstance(data, dict) else data
+
+
 class TestPrecomputedFiles:
     """Verify the JSON files exist and have correct schema."""
 
@@ -113,8 +121,7 @@ class TestPrecomputedFiles:
 
     def test_anomaly_record_schema(self):
         """Each anomaly record must carry required keys."""
-        with ANOMALIES_PATH.open(encoding="utf-8") as fh:
-            records = json.load(fh)
+        records = _anomaly_events()
         required = {
             "date", "price", "rolling_median", "deviation_pct",
             "type", "score", "commodity_code", "city_id", "city_name", "persistent",
@@ -124,8 +131,7 @@ class TestPrecomputedFiles:
             assert not missing, f"Anomaly record missing keys: {missing}"
 
     def test_anomaly_types_valid(self):
-        with ANOMALIES_PATH.open(encoding="utf-8") as fh:
-            records = json.load(fh)
+        records = _anomaly_events()
         for r in records[:50]:
             assert r["type"] in ("SPIKE", "DROP")
 
@@ -158,8 +164,7 @@ class TestPrecomputedFiles:
         assert match is not None, "cabai_rawit / Surabaya (3578) forecast missing"
 
     def test_anomaly_bawang_merah_present(self):
-        with ANOMALIES_PATH.open(encoding="utf-8") as fh:
-            records = json.load(fh)
+        records = _anomaly_events()
         bm = [r for r in records if r["commodity_code"] == "bawang_merah"]
         assert len(bm) > 0
 
