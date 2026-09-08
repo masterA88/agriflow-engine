@@ -37,15 +37,15 @@ The same table takes `channel = 'whatsapp'` rows later; those never enter `deman
 
 Until this is done the API spools events to `data/telemetry_spool.jsonl` on the host. On the Hugging Face Space that disk is ephemeral, so spooled events are lost on restart. Do this on the day the code goes live:
 
-1. Create the Supabase project (or open the one that will hold the dashboard auth). Free tier is enough for the pilot.
-2. Run the migration once. Either paste `db/migrations/2026-09-08_behaviour_analytics.sql` into the SQL editor, or:
+1. The Supabase project exists: `agriflow`, ref `cfvecymrgjqyqhflwucf`, region ap-southeast-1 (Singapore), free tier, created 2026-09-08.
+2. The migration is already applied there (three migrations via the Supabase MCP; pg_cron and pgcrypto enabled; the four daily jobs are scheduled). For a fresh project, run it once: Either paste `db/migrations/2026-09-08_behaviour_analytics.sql` into the SQL editor, or:
 
    ```
    psql "$SUPABASE_DB_URL" -f db/migrations/2026-09-08_behaviour_analytics.sql
    ```
 
    The file is idempotent. It enables `pgcrypto`, and schedules the daily rollup, purge and salt rotation if `pg_cron` is enabled (Database, Extensions, pg_cron). Without pg_cron, call `SELECT rollup_intent_daily(2);` and `SELECT purge_intent_events(90);` from any daily job.
-3. Copy the connection string (Project Settings, Database, Connection string, URI, the pooled "Session" one is fine) and set it as `SUPABASE_DB_URL` on the Hugging Face Space (Settings, Variables and secrets, secret). Use the `postgres` (service) credentials; the tables have RLS enabled with no policies, so `anon` and `authenticated` cannot read them, by design.
+3. Set the database password (Project Settings, Database, Reset database password; the MCP-created project never showed one). Then open Connect at the top of the dashboard, pick **Session pooler** (IPv4; the direct `db.<ref>.supabase.co` host is IPv6-only on the free tier and the Hugging Face Space cannot reach it), copy the URI, which looks like `postgresql://postgres.cfvecymrgjqyqhflwucf:[PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres`, and set it as `SUPABASE_DB_URL` on the Hugging Face Space (Settings, Variables and secrets, secret). The tables have RLS enabled with no policies, so `anon` and `authenticated` cannot read them, by design; only this connection can.
 4. Restart the Space. The first `POST /api/v1/events` after that writes to Postgres; the log line `telemetry.recorded ... spool=False` confirms it.
 5. Check: `SELECT event_type, count(*) FROM intent_event GROUP BY 1;` after clicking around the dashboard with consent accepted.
 

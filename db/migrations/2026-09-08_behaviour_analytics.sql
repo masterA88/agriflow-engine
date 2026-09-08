@@ -17,7 +17,12 @@
 -- WhatsApp-derived data is excluded by Meta's Business Solution Terms.
 -- =============================================================================
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;   -- gen_random_bytes for the daily salt
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;   -- gen_random_bytes for the daily salt
+CREATE EXTENSION IF NOT EXISTS pg_cron;                            -- daily rollup, purge, salt rotation
+
+-- Applied to Supabase project `agriflow` (ref cfvecymrgjqyqhflwucf, ap-southeast-1) on 2026-09-08
+-- via the Supabase MCP as migrations enable_pg_cron_and_pgcrypto,
+-- behaviour_analytics_and_chat_session, revoke_definer_functions_from_api_roles.
 
 -- -----------------------------------------------------------------------------
 -- 1. intent_event: one row per user action. No message text. No phone.
@@ -82,13 +87,14 @@ CREATE OR REPLACE FUNCTION analytics_salt_today()
 RETURNS BYTEA
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, extensions
 AS $$
 DECLARE
     d DATE := (now() AT TIME ZONE 'Asia/Jakarta')::date;
     s BYTEA;
 BEGIN
     INSERT INTO analytics_salt (salt_date, salt)
-    VALUES (d, gen_random_bytes(32))
+    VALUES (d, extensions.gen_random_bytes(32))
     ON CONFLICT (salt_date) DO NOTHING;
     DELETE FROM analytics_salt WHERE salt_date < d - 1;
     SELECT salt INTO s FROM analytics_salt WHERE salt_date = d;
@@ -96,6 +102,9 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION analytics_salt_today() FROM PUBLIC;
+-- Supabase grants EXECUTE on public functions to the API roles by default;
+-- SECURITY DEFINER maintenance functions must not be callable over /rest/v1/rpc.
+REVOKE EXECUTE ON FUNCTION analytics_salt_today() FROM anon, authenticated;
 
 -- -----------------------------------------------------------------------------
 -- 3. intent_daily_agg: the non-personal rollup. Sentinel '' instead of NULL so
@@ -123,6 +132,7 @@ CREATE OR REPLACE FUNCTION rollup_intent_daily(p_days INT DEFAULT 2)
 RETURNS INT
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE n INT;
 BEGIN
@@ -147,12 +157,14 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION rollup_intent_daily(INT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION rollup_intent_daily(INT) FROM anon, authenticated;
 
 -- Retention: raw events live 90 days, then only the rollup remains.
 CREATE OR REPLACE FUNCTION purge_intent_events(p_keep_days INT DEFAULT 90)
 RETURNS INT
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE n INT;
 BEGIN
@@ -162,12 +174,13 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION purge_intent_events(INT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION purge_intent_events(INT) FROM anon, authenticated;
 
 -- -----------------------------------------------------------------------------
 -- 4. demand_signal_export: the ONLY thing a B2G buyer ever reads.
 --    Both conditions live here, in SQL, not in application code.
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE VIEW demand_signal_export AS
+CREATE OR REPLACE VIEW demand_signal_export WITH (security_invoker = true) AS
 SELECT day,
        channel,
        event_type,
@@ -185,7 +198,7 @@ REVOKE ALL ON demand_signal_export FROM anon, authenticated;
 -- When a reporting role exists: GRANT SELECT ON demand_signal_export TO agriflow_reporting;
 
 -- Internal-only companion (both channels) for product analytics. Never exported.
-CREATE OR REPLACE VIEW intent_daily_internal AS
+CREATE OR REPLACE VIEW intent_daily_internal WITH (security_invoker = true) AS
 SELECT day, channel, event_type,
        NULLIF(intent, '') AS intent, NULLIF(commodity, '') AS commodity,
        NULLIF(kabupaten_id, '') AS kabupaten_id, event_count, unique_users
@@ -229,6 +242,7 @@ CREATE OR REPLACE FUNCTION expire_chat_sessions()
 RETURNS TABLE (turns_cleared INT, slots_cleared INT, rows_deleted INT)
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE a INT; b INT; c INT;
 BEGIN
@@ -244,6 +258,7 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION expire_chat_sessions() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION expire_chat_sessions() FROM anon, authenticated;
 
 -- -----------------------------------------------------------------------------
 -- 6. Optional scheduling with pg_cron (enable the extension in Supabase:
