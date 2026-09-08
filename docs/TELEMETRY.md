@@ -58,10 +58,22 @@ Local development: put the same `SUPABASE_DB_URL` in the repo root `.env`, or le
 - Withdrawal on `/privasi` takes effect immediately in the browser. Raw rows are deleted after 90 days; only the daily aggregate remains.
 - WhatsApp-derived rows (even aggregated) may not be sold under Meta's Business Solution Terms. The view `demand_signal_export` enforces `channel = 'web'` and `unique_users >= 5` in SQL, and the insight endpoint reads nothing else.
 
+## 4b. Demo data (seeded 2026-09-08, remove before selling anything)
+
+`db/seed/demo_telemetry_2026-09.sql` inserts 130 synthetic visitors over 14 days (about 4,950 events) so the Insight Permintaan tab and the sample report have something to show. Every demo row carries `app_version = 'demo-seed'` and `detail.source = 'demo'`. Before the first real report, purge and re-roll:
+
+```sql
+DELETE FROM intent_event WHERE app_version = 'demo-seed';
+DELETE FROM intent_daily_agg;
+SELECT rollup_intent_daily(90);
+```
+
+The sample report in `docs/Contoh_Laporan_Sinyal_Permintaan.pdf` (also served at `/insight/contoh-laporan-sinyal-permintaan.pdf`) was built from that seed by `tools/insight_report/build_report.py` and says so in red on page 1.
+
 ## 5. Reading the data
 
 Internal product analytics (both channels): `SELECT * FROM intent_daily_internal ORDER BY day DESC;`
 
 Sellable signal (web only, k-anonymised): `SELECT * FROM demand_signal_export ORDER BY day DESC;` or `GET /api/v1/insight/demand?commodity=cabai_rawit&days=30` with a signed-in dashboard token.
 
-The "Insight Permintaan" dashboard tab described in the spec (section 4.8) is not built yet; the endpoint it needs is.
+The "Insight Permintaan" dashboard tab (after Laporan & KPI) renders this view: attention per commodity and per kabupaten, the interaction mix, and the sample PDF download.

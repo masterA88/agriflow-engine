@@ -2,7 +2,7 @@
 
 import { Icons } from "./Icons";
 
-export type TabKey = "beranda" | "peta" | "distribusi" | "harga" | "simulasi" | "notifikasi" | "laporan" | "bantuan";
+export type TabKey = "beranda" | "peta" | "distribusi" | "harga" | "simulasi" | "notifikasi" | "laporan" | "insight" | "bantuan";
 
 export const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: "beranda", label: "Beranda", icon: <Icons.Home /> },
@@ -12,6 +12,7 @@ export const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: "harga", label: "Harga & Prakiraan", icon: <Icons.TrendingUp /> },
   { key: "notifikasi", label: "Notifikasi", icon: <Icons.Bell /> },
   { key: "laporan", label: "Laporan & KPI", icon: <Icons.FileText /> },
+  { key: "insight", label: "Insight Permintaan", icon: <Icons.Database /> },
   { key: "bantuan", label: "Bantuan", icon: <Icons.HelpCircle /> },
 ];
 

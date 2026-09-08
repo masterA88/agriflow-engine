@@ -17,6 +17,7 @@ import Bantuan from "./components/tabs/Bantuan";
 import Beranda from "./components/tabs/Beranda";
 import Distribusi from "./components/tabs/Distribusi";
 import HargaTren from "./components/tabs/HargaTren";
+import InsightPermintaan from "./components/tabs/InsightPermintaan";
 import Laporan from "./components/tabs/Laporan";
 import Notifikasi from "./components/tabs/Notifikasi";
 import PetaPasokan from "./components/tabs/PetaPasokan";
@@ -116,6 +117,7 @@ export default function Home() {
           <Notifikasi items={notifications} read={read} onRead={(id) => setRead((r) => new Set(r).add(id))} onAction={onNotificationAction} />
         )}
         {tab === "laporan" && <Laporan summary={core.summary} meta={core.meta} commodities={core.commodities} />}
+        {tab === "insight" && <InsightPermintaan commodities={core.commodities} kabupaten={core.kabupaten} />}
         {tab === "bantuan" && <Bantuan />}
       </main>
 

@@ -1,0 +1,136 @@
+\documentclass[9pt,a4paper]{extarticle}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1.6cm,top=1.4cm,bottom=1.4cm]{geometry}
+\usepackage{graphicx,booktabs,array,xcolor,hyperref}
+\usepackage{helvet}
+\usepackage[indonesian]{babel}
+\definecolor{agri}{HTML}{5B7245}
+\hypersetup{colorlinks=true,linkcolor=agri,urlcolor=agri}
+\setlength{\parskip}{3pt}\setlength{\parindent}{0pt}
+\renewcommand{\familydefault}{\sfdefault}
+\pagestyle{empty}
+\newcommand{\sect}[1]{\vspace{5pt}{\color{agri}\normalsize\bfseries #1}\par\vspace{2pt}}
+\newcommand{\tsize}{\footnotesize}
+\begin{document}
+{\color{agri}\LARGE\bfseries Sinyal Permintaan Pangan Jawa Timur}\\[1pt]
+{\normalsize Contoh laporan dua mingguan untuk instansi dan lembaga}\\[2pt]
+{\footnotesize Periode 26 Agustus sampai 8 September 2026 \,\textbullet\, Penulis: Hilmi \,\textbullet\, \href{https://master-hilmi.vercel.app/}{master-hilmi.vercel.app} \,\textbullet\, AgriFlow, \href{https://agriflow.farm}{agriflow.farm}}
+
+\vspace{3pt}\hrule\vspace{4pt}
+{\footnotesize\color{red!70!black}\textbf{Catatan contoh.} Angka dalam dokumen ini berasal dari data simulasi 130 pengunjung yang disisipkan ke basis data AgriFlow untuk memperagakan format dan metode laporan. Laporan berlangganan memakai data pengguna sungguhan dengan metode yang sama persis.}
+
+\sect{Ringkasan}
+\begin{itemize}\setlength{\itemsep}{0pt}\setlength{\topsep}{0pt}
+\item Dalam 14 hari, \textbf{130 pengunjung} melakukan \textbf{4.949} interaksi dalam \textbf{308 sesi} (rata-rata 3,6 menit per sesi).
+\item Perhatian terpusat pada tiga komoditas: cabai rawit, bawang merah, dan beras medium menyerap \textbf{75\%} pemilihan komoditas.
+\item Wilayah yang paling banyak dilihat: Malang, Magetan, Bojonegoro. Untuk cabai rawit, perhatian tertinggi di Malang (17 pengguna-hari), wilayah yang menurut neraca BPS tidak defisit cabai rawit, pola daerah surplus yang mencari pembeli.
+\item Skenario yang paling sering diuji: Erupsi Semeru (15 kali) dan Suramadu ditutup (14 kali) dari 82 simulasi; ini sinyal risiko logistik yang dirasakan pengguna.
+\item 202 tampilan prakiraan harga dan 80 unduhan daftar match menunjukkan pemakaian untuk keputusan, bukan sekadar kunjungan.
+\end{itemize}
+
+\sect{Apa yang diukur, dan apa yang tidak}
+Laporan ini mengukur \textbf{perhatian}: komoditas dan wilayah yang dipilih, prakiraan yang dilihat, skenario yang diuji, dan berkas yang diunduh oleh pengguna dashboard AgriFlow yang telah memberikan persetujuan. Laporan ini tidak mengukur niat beli atau jual, dan tidak memuat data percakapan WhatsApp dalam bentuk apa pun, sesuai WhatsApp Business Solution Terms dan UU PDP No. 27/2022. Tiga sumber digabungkan: interaksi web first-party, neraca surplus-defisit BPS 2022 per kabupaten/kota, dan keluaran engine pencocokan AgriFlow. Setiap pengguna diwakili token harian yang tidak dapat ditautkan lintas hari; sel dengan kurang dari 5 pengguna unik tidak pernah dilaporkan. Satuan ``pengguna-hari'' berarti satu pengguna yang aktif pada satu hari; orang yang sama pada hari berbeda dihitung terpisah, dan itu disengaja.
+
+\begin{minipage}[t]{0.48\linewidth}
+\sect{Perhatian per komoditas}
+\includegraphics[width=\linewidth]{fig_komoditas.pdf}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\sect{Pengguna per hari}
+\includegraphics[width=\linewidth]{fig_harian.pdf}
+\end{minipage}
+
+\begin{minipage}[t]{0.48\linewidth}
+{\tsize\begin{tabular}{@{}l r r r r@{}}\toprule
+Komoditas & Peng.\,hari & Prakiraan & Simulasi & Unduh \\\midrule
+Cabai rawit & 193 & 52 & 24 & 24 \\
+Bawang merah & 188 & 54 & 23 & 20 \\
+Beras medium & 172 & 59 & 24 & 22 \\
+Bawang putih & 57 & 13 & 3 & 3 \\
+Beras premium & 47 & 8 & 3 & 4 \\
+Cabai merah & 38 & 8 & 2 & 2 \\
+Daging ayam & 28 & 5 & 2 & 3 \\
+Telur ayam & 18 & 3 & 1 & 2 \\
+\bottomrule\end{tabular}}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\footnotesize Puncak 46 pengguna pada 2026-09-08. Akhir pekan (abu-abu) sekitar separuh hari kerja. Pada volume awal ini sel per kabupaten baru melewati ambang 5 pengguna pada agregasi mingguan, sehingga laporan berlangganan memakai grain mingguan untuk wilayah dan harian untuk komoditas.
+
+\vspace{3pt}{\tsize\begin{tabular}{@{}l r r@{}}\toprule
+Tab & Tampilan & Peng.\,hari \\\midrule
+Peta Pasokan & 265 & 188 \\
+Beranda & 255 & 168 \\
+Rekomendasi Distribusi & 246 & 179 \\
+Harga \& Prakiraan & 202 & 157 \\
+Simulasi What-if & 127 & 111 \\
+Laporan \& KPI & 83 & 76 \\
+Bantuan & 42 & 38 \\
+Notifikasi & 34 & 33 \\
+\bottomrule\end{tabular}}
+\end{minipage}
+
+\newpage
+\sect{Perhatian per wilayah}
+\begin{minipage}[t]{0.5\linewidth}
+{\tsize\begin{tabular}{@{}l r r r@{}}\toprule
+Kabupaten/Kota & Peng.\,hari & Interaksi & Prakiraan \\\midrule
+Malang & 29 & 61 & 20 \\
+Magetan & 22 & 49 & 15 \\
+Bojonegoro & 21 & 33 & 9 \\
+Ngawi & 18 & 29 & 8 \\
+Pasuruan & 17 & 39 & 10 \\
+Bangkalan & 17 & 31 & 10 \\
+Probolinggo & 16 & 28 & 6 \\
+Situbondo & 15 & 27 & 6 \\
+\bottomrule\end{tabular}}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.46\linewidth}
+{\tsize\begin{tabular}{@{}l l r@{}}\toprule
+Komoditas & Wilayah & Peng.\,hari \\\midrule
+Cabai rawit & Malang & 17 \\
+Bawang merah & Magetan & 14 \\
+Beras medium & Malang & 11 \\
+Cabai rawit & Nganjuk & 9 \\
+Bawang merah & Ngawi & 9 \\
+Beras medium & Trenggalek & 8 \\
+Bawang merah & Bondowoso & 8 \\
+Beras medium & Kota Malang & 8 \\
+\bottomrule\end{tabular}}
+\end{minipage}
+
+\sect{Perhatian dan neraca: di mana orang bertanya, dan apakah pasokan ada di sana}
+\begin{minipage}[t]{0.5\linewidth}
+\vspace{0pt}\includegraphics[width=\linewidth]{fig_scatter.pdf}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\linewidth}
+\vspace{0pt}\footnotesize Wilayah dengan perhatian tertinggi adalah Malang (29 pengguna-hari, tidak defisit cabai rawit menurut BPS), Magetan (22, defisit 431 ton), dan Bojonegoro (21, defisit 1.248 ton). Sebaliknya, Kota Surabaya (6.0 ribu ton) dan Sidoarjo (4.3 ribu ton) menanggung defisit terbesar tetapi hanya dilihat 14 dan 13 pengguna-hari. Kuadran defisit besar dan perhatian rendah itulah yang layak didorong lewat sosialisasi TPID dan operasi pasar; kuadran perhatian tinggi dan defisit kecil menandai daerah yang mencari pembeli, pola yang cocok untuk program penyerapan.
+
+\vspace{4pt}{\tsize\begin{tabular}{@{}l r@{}}\toprule
+Skenario yang diuji & Jumlah \\\midrule
+Erupsi Semeru & 15 \\
+Suramadu ditutup & 14 \\
+BBM naik & 12 \\
+Ramadan + BBM naik & 12 \\
+Semeru + banjir & 10 \\
+Banjir sentra padi & 10 \\
+Ramadan & 9 \\
+\bottomrule\end{tabular}}
+\end{minipage}
+
+\sect{Cara memakai laporan ini}
+\begin{itemize}\setlength{\itemsep}{0pt}\setlength{\topsep}{0pt}
+\item \textbf{Bapanas dan TPID provinsi/kabupaten}: pemantauan mingguan komoditas yang perhatiannya naik sebelum harga bergerak; pemilihan wilayah prioritas operasi pasar dari kuadran defisit tinggi dan perhatian tinggi.
+\item \textbf{Kemendag dan Kementan}: bukti permintaan informasi per komoditas untuk menyusun prioritas data terbuka dan jadwal rilis.
+\item \textbf{Lembaga keuangan, asuransi, dan pemasok sarana produksi}: peta perhatian per kabupaten sebagai indikator awal aktivitas pasar, digabung dengan neraca BPS.
+\item \textbf{Logistik}: skenario gangguan yang paling sering diuji sebagai daftar risiko yang dipersepsikan pelaku.
+\end{itemize}
+
+\sect{Batasan}
+Sampel awal masih kecil dan berasal dari pengguna yang mengenal AgriFlow, sehingga belum mewakili seluruh pelaku pangan Jawa Timur. Perhatian bukan transaksi. Sel di bawah 5 pengguna disuppress, sehingga wilayah kecil muncul lebih lambat. Riwayat harga yang mendasari prakiraan berhenti pada tanggal pembaruan terakhir sumber Siskaperbapo. Semua batas ini tercantum agar pembaca dapat menimbang angkanya sendiri.
+
+\sect{Berlangganan}
+Laporan mingguan atau dua mingguan, format PDF dan CSV, per komoditas atau per wilayah, dengan akses ke tampilan \texttt{demand\_signal\_export} untuk integrasi. Hubungi AgriFlow melalui \href{https://agriflow.farm}{agriflow.farm}.
+
+\vfill{\scriptsize Sumber: interaksi dashboard AgriFlow (persetujuan versi 2026-09-v1), BPS Jawa Timur 2022, engine AgriFlow v1.1. Dokumen ini dihasilkan otomatis dari tampilan agregat; tidak ada data perorangan yang dibaca dalam penyusunannya.}
+\end{document}

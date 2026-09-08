@@ -184,6 +184,15 @@ export type SummaryTotals = {
   gross_arbitrage_idr: number;
 };
 
+export type DemandSignalRow = {
+  day: string; event_type: string; intent: string | null; commodity: string | null;
+  kabupaten_id: string | null; event_count: number; unique_users: number;
+};
+
+export type DemandSignal = {
+  source: string; channel: "web"; days: number; commodity: string | null; count: number; rows: DemandSignalRow[];
+};
+
 export type Summary = {
   data_as_of: { price_history_end: string | null; bps_reference_year: number };
   per_commodity: Record<string, CommoditySummary>;
@@ -349,6 +358,8 @@ export const api = {
     return fetchJson<AnomaliesResponse>(`/api/v1/anomalies?${q.toString()}`);
   },
   meta: () => fetchJson<Meta>("/api/v1/meta"),
+  insightDemand: (p: { commodity?: string; days?: number }) =>
+    fetchJson<DemandSignal>(`/api/v1/insight/demand?days=${p.days ?? 30}${p.commodity ? `&commodity=${encodeURIComponent(p.commodity)}` : ""}`),
   summary: (commodity?: string) =>
     fetchJson<Summary>(`/api/v1/summary${commodity ? `?commodity=${encodeURIComponent(commodity)}` : ""}`),
   simulatePresets: () => fetchJson<Record<string, string>>("/api/v1/simulate/presets"),
