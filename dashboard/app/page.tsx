@@ -91,7 +91,7 @@ export default function LandingPage() {
           </div>
           <p className="mt-5 text-xs text-white/60">
             Data BPS 2022 · Siskaperbapo + PIHPS harga harian 38 kabupaten/kota · IPM 2024 &nbsp;·&nbsp; Engine v1.1.0 ·
-            544 uji otomatis lulus
+            597 uji otomatis lulus
           </p>
         </div>
         <div className="mx-auto mt-10 max-w-5xl overflow-hidden rounded-xl border border-white/20 shadow-2xl">
@@ -170,7 +170,7 @@ export default function LandingPage() {
             menampilkan kosong, bukan tebakan.
           </p>
           <p className="mx-auto mt-2 max-w-2xl text-center text-xs text-slate-500">
-            Engine v1.1.0. 544 uji otomatis lulus. Dibangun untuk konteks PIDI
+            Engine v1.1.0. 597 uji otomatis lulus. Dibangun untuk konteks PIDI
             DIGDAYA Bank Indonesia.
           </p>
         </div>
