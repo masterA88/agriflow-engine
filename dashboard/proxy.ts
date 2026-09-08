@@ -40,7 +40,7 @@ const GUEST_COOKIE = "agriflow_guest"; // keep in sync with app/lib/guest.ts
 const DEV_COOKIE = "agriflow_dev"; // keep in sync with app/lib/devauth.ts
 
 // Pages that must stay reachable while signed out.
-const PUBLIC_PREFIXES = ["/login", "/forgot-password", "/reset-password", "/privasi"];
+const PUBLIC_PREFIXES = ["/login", "/forgot-password", "/reset-password", "/privasi", "/insight/"];
 
 const IS_DEV = process.env.NODE_ENV === "development";
 
