@@ -230,7 +230,7 @@ class TestE_Posture:
         hardened = replace(
             settings, mock_mode=False, twilio_validate_signature=True,
             billing_mock=False, phone_hash_salt="s" * 64, debug_chat_enabled=True,
-            app_env="production",
+            app_env="production", manychat_webhook_secret="s" * 32,
         )
         assert security.check_production_posture(hardened) == []
 

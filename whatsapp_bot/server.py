@@ -37,7 +37,7 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
 try:
-    from fastapi import FastAPI, Form, Header, HTTPException, Query, Request
+    from fastapi import Depends, FastAPI, Form, Header, HTTPException, Query, Request
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import JSONResponse, Response
 except ImportError as e:
@@ -212,6 +212,7 @@ class AppState:
     data: EngineData | None = None
     gemini: GeminiClient | None = None
     subs: SubscriptionService | None = None
+    orchestrator: "Orchestrator | None" = None
 
 
 state = AppState()
@@ -714,20 +715,22 @@ def _resolve_city(value: Optional[str], data: "EngineData") -> Optional[str]:
     return exact_kota
 
 
-@app.get("/api/v1/commodities")
-async def api_commodities() -> JSONResponse:
+def _commodities_payload() -> list:
     data = _ensure_engine()
-    out = [
+    return [
         {"code": c.code, "nama": c.nama}
         for c in sorted(data.komoditas.values(), key=lambda c: c.nama)
     ]
-    return JSONResponse(out)
 
 
-@app.get("/api/v1/kabupaten")
-async def api_kabupaten() -> JSONResponse:
+@app.get("/api/v1/commodities")
+async def api_commodities() -> JSONResponse:
+    return JSONResponse(_commodities_payload())
+
+
+def _kabupaten_payload() -> list:
     data = _ensure_engine()
-    out = [
+    return [
         {
             "id": k.id, "nama": k.nama,
             "lat": k.latitude, "lng": k.longitude,
@@ -736,14 +739,24 @@ async def api_kabupaten() -> JSONResponse:
         }
         for k in sorted(data.kabupaten.values(), key=lambda k: k.nama)
     ]
-    return JSONResponse(out)
 
 
-@app.get("/api/v1/surplus-deficit")
-async def api_surplus_deficit(
-    commodity: str = Query(..., description="Commodity code, e.g. cabai_merah"),
-) -> JSONResponse:
-    """Per-kab surplus/deficit volume for one commodity — powers the map bubbles."""
+@app.get("/api/v1/kabupaten")
+async def api_kabupaten() -> JSONResponse:
+    return JSONResponse(_kabupaten_payload())
+
+
+class ToolLookupError(Exception):
+    """Raised by a payload builder for a bad argument, when called as a bot
+    tool rather than an HTTP route. HTTP routes still raise HTTPException
+    directly, which every payload builder below also does when called
+    in-process from the route itself; whatsapp_bot/tools.py catches both,
+    since a tool executor has no HTTP status code to return."""
+
+
+def _surplus_deficit_payload(commodity: str) -> dict:
+    """Per-kab surplus/deficit volume for one commodity. Powers the map
+    bubbles (api_surplus_deficit) and the get_surplus_deficit bot tool."""
     data = _ensure_engine()
     if commodity not in data.komoditas:
         raise HTTPException(status_code=404, detail=f"unknown commodity: {commodity}")
@@ -775,7 +788,7 @@ async def api_surplus_deficit(
 
     total_surplus = sum(r["volume_tons"] for r in rows if r["role"] == "surplus")
     total_deficit = sum(r["volume_tons"] for r in rows if r["role"] == "deficit")
-    return JSONResponse({
+    return {
         "commodity": {"code": commo.code, "nama": commo.nama},
         "rows": rows,
         "totals": {
@@ -783,7 +796,32 @@ async def api_surplus_deficit(
             "deficit_tons": total_deficit,
             "balance_tons": total_surplus - total_deficit,
         },
-    })
+    }
+
+
+@app.get("/api/v1/surplus-deficit")
+async def api_surplus_deficit(
+    commodity: str = Query(..., description="Commodity code, e.g. cabai_merah"),
+) -> JSONResponse:
+    return JSONResponse(_surplus_deficit_payload(commodity))
+
+
+def _price_lookup_payload(commodity: str, kabupaten: str) -> dict:
+    """One row from _surplus_deficit_payload for a single kabupaten: the
+    get_price bot tool. "Price" here is whichever side of the balance that
+    kabupaten is on (producer price if surplus, consumer price if deficit),
+    exactly like the dashboard's own median price cards on the Beranda tab."""
+    data = _ensure_engine()
+    kab_id = _resolve_city(kabupaten, data) or kabupaten
+    payload = _surplus_deficit_payload(commodity)
+    row = next((r for r in payload["rows"] if r["kab_id"] == kab_id), None)
+    if row is None:
+        raise ToolLookupError(
+            f"Tidak ada data neraca {commodity} untuk kabupaten/kota {kabupaten!r}. "
+            f"Kemungkinan kabupaten tidak dikenali, atau komoditas ini tidak "
+            f"terdaftar defisit maupun surplus di sana menurut neraca BPS."
+        )
+    return {"commodity": payload["commodity"], **row}
 
 
 def _serialize_match(m) -> Dict[str, Any]:
@@ -858,14 +896,14 @@ def _explain_match(m) -> List[str]:
     return out
 
 
-@app.get("/api/v1/matches")
-async def api_matches(
-    user: AuthUser | None = GatedUser,
-    commodity: str | None = Query(None, description="Filter by commodity code"),
-    kab_id: str | None = Query(None, description="Filter where this kab is surplus OR deficit side"),
-    limit: int = Query(50, ge=1, le=500),
-) -> JSONResponse:
-    """Serve scored matches for map flow lines + side panel, from a cached engine run."""
+def _matches_payload(
+    commodity: Optional[str] = None, kab_id: Optional[str] = None,
+    limit: int = 50, *, side: Optional[str] = None,
+) -> dict:
+    """Scored matches for the map flow lines and side panel (api_matches),
+    the find_buyers / find_suppliers bot tools (side="surplus"/"deficit"
+    narrows kab_id to one side instead of either), and run_whatif's baseline
+    view. `side` has no HTTP equivalent; every route caller leaves it None."""
     report = _cached_report()
 
     # Copy before sorting. `report.matches` is the shared cached list, and an
@@ -875,16 +913,49 @@ async def api_matches(
     if commodity:
         matches = [m for m in matches if m.surplus.commodity.code == commodity]
     if kab_id:
-        matches = [
-            m for m in matches
-            if m.surplus.kabupaten.id == kab_id or m.deficit.kabupaten.id == kab_id
-        ]
+        if side == "surplus":
+            matches = [m for m in matches if m.surplus.kabupaten.id == kab_id]
+        elif side == "deficit":
+            matches = [m for m in matches if m.deficit.kabupaten.id == kab_id]
+        else:
+            matches = [
+                m for m in matches
+                if m.surplus.kabupaten.id == kab_id or m.deficit.kabupaten.id == kab_id
+            ]
     matches.sort(key=lambda m: m.final_score, reverse=True)
     matches = matches[:limit]
-    return JSONResponse({
+    return {
         "count": len(matches),
         "matches": [_serialize_match(m) for m in matches],
-    })
+    }
+
+
+@app.get("/api/v1/matches")
+async def api_matches(
+    user: AuthUser | None = GatedUser,
+    commodity: str | None = Query(None, description="Filter by commodity code"),
+    kab_id: str | None = Query(None, description="Filter where this kab is surplus OR deficit side"),
+    limit: int = Query(50, ge=1, le=500),
+) -> JSONResponse:
+    return JSONResponse(_matches_payload(commodity, kab_id, limit))
+
+
+def _find_buyers_payload(commodity: str, kabupaten_origin: str, volume_tons: Optional[float] = None) -> dict:
+    """Who the allocator actually matched this surplus kabupaten's output
+    to, i.e. "I have supply in X, who is buying it". Reuses the engine's own
+    committed matches rather than a fresh candidate search, so the answer is
+    the allocation that is actually running, not a hypothetical one."""
+    data = _ensure_engine()
+    kab_id = _resolve_city(kabupaten_origin, data) or kabupaten_origin
+    payload = _matches_payload(commodity, kab_id, limit=20, side="surplus")
+    if not payload["matches"]:
+        raise ToolLookupError(
+            f"Tidak ada pembeli yang dicocokkan engine untuk {commodity} dari "
+            f"{kabupaten_origin!r}. Kemungkinan kabupaten ini bukan sisi surplus "
+            f"untuk komoditas itu, atau semua penerima sudah tertutup pemasok lain."
+        )
+    return {"commodity": commodity, "kabupaten_origin": kab_id,
+            "volume_tons_requested": volume_tons, **payload}
 
 
 # =============================================================================
@@ -927,22 +998,13 @@ def _load_anomalies() -> list:
     return data
 
 
-@app.get("/api/v1/forecast")
-async def api_forecast(
-    user: AuthUser | None = GatedUser,
-    commodity: str = Query(..., description="Commodity code, e.g. cabai_rawit"),
-    city: str = Query(..., description="IHK city_id, e.g. 3578 (Surabaya)"),
-) -> JSONResponse:
+def _forecast_payload(commodity: str, city: str) -> dict:
     """
     30-day price forecast (point + P10/P90) for one commodity × city pair.
 
     Data is precomputed offline (seasonal-naive baseline unless TimesFM was
-    available at precompute time).  The 'method' field in the response tells
-    you which model was used.
-
-    Query params:
-        commodity  AgriFlow commodity code (e.g. cabai_rawit, bawang_merah)
-        city       IHK city_id  (e.g. 3578 for Kota Surabaya)
+    available at precompute time). The 'method' field in the response tells
+    you which model was used. `city` accepts an IHK code or a kabupaten name.
 
     Response schema:
         commodity_code   str
@@ -981,42 +1043,34 @@ async def api_forecast(
                 "available_pairs": [{"commodity": c, "city": ci} for c, ci in available[:20]],
             },
         )
-    return JSONResponse(match)
+    return match
 
 
-@app.get("/api/v1/anomalies")
-async def api_anomalies(
+@app.get("/api/v1/forecast")
+async def api_forecast(
     user: AuthUser | None = GatedUser,
-    commodity: str | None = Query(None, description="Filter by commodity code"),
-    city: str | None = Query(None, description="Filter by IHK city_id"),
-    limit: int = Query(50, ge=1, le=500, description="Max records returned (sorted by score desc)"),
-    since: str | None = Query(None, description="ISO date lower-bound, e.g. 2024-01-01"),
+    commodity: str = Query(..., description="Commodity code, e.g. cabai_rawit"),
+    city: str = Query(..., description="IHK city_id, e.g. 3578 (Surabaya)"),
 ) -> JSONResponse:
+    return JSONResponse(_forecast_payload(commodity, city))
+
+
+def _anomalies_payload(
+    commodity: Optional[str] = None, city: Optional[str] = None,
+    limit: int = 50, since: Optional[str] = None,
+) -> dict:
     """
-    Detected price anomalies from the S-H-ESD scanner (precomputed offline).
-
-    All filters are optional.  Without filters returns top-N anomalies by score.
-
-    Query params:
-        commodity  optional commodity code filter
-        city       optional IHK city_id filter
-        limit      max records (default 50, max 500)
-        since      ISO date — only return anomalies on or after this date
+    Detected price anomalies from the Hampel/MAD scanner (precomputed
+    offline). All filters are optional; without filters, returns top-N by
+    score. `city` accepts an IHK code or a kabupaten name.
 
     Response schema:
         count     int
-        method    str  ("shesd_v2")
+        method    str
         anomalies list of {
-            date           str  ISO 8601
-            price          float  IDR/kg
-            rolling_median float
-            deviation_pct  float  (positive = spike, negative = drop)
-            type           str    SPIKE | DROP
-            score          float  (higher = more anomalous)
-            commodity_code str
-            city_id        str
-            city_name      str
-            persistent     bool
+            date, price, rolling_median, deviation_pct (+spike/-drop),
+            type (SPIKE|DROP), score, commodity_code, city_id, city_name,
+            persistent (bool)
         }
     """
     records = _load_anomalies()
@@ -1041,11 +1095,22 @@ async def api_anomalies(
     # Already sorted by score desc in the precomputed file; slice to limit
     filtered = filtered[:limit]
 
-    return JSONResponse({
+    return {
         "count":     len(filtered),
         "method":    ANOMALY_METHOD,
         "anomalies": filtered,
-    })
+    }
+
+
+@app.get("/api/v1/anomalies")
+async def api_anomalies(
+    user: AuthUser | None = GatedUser,
+    commodity: str | None = Query(None, description="Filter by commodity code"),
+    city: str | None = Query(None, description="Filter by IHK city_id"),
+    limit: int = Query(50, ge=1, le=500, description="Max records returned (sorted by score desc)"),
+    since: str | None = Query(None, description="ISO date lower-bound, e.g. 2024-01-01"),
+) -> JSONResponse:
+    return JSONResponse(_anomalies_payload(commodity, city, limit, since))
 
 
 # =============================================================================
@@ -1060,12 +1125,12 @@ def _load_anomaly_meta() -> dict:
         return _json.load(fh)
 
 
-@app.get("/api/v1/meta")
-async def api_meta() -> JSONResponse:
+def _meta_payload() -> dict:
     """
-    "Data per" for every panel. Everything here is read from the artefacts
-    the server actually serves, so the dashboard can never claim freshness
-    the data does not have.
+    "Data per" for every panel, and the get_data_freshness bot tool.
+    Everything here is read from the artefacts the server actually serves,
+    so neither the dashboard nor the bot can claim freshness the data does
+    not have.
     """
     data = _ensure_engine()
     forecasts = _load_forecasts()
@@ -1073,7 +1138,7 @@ async def api_meta() -> JSONResponse:
     fc_hist_end = sorted({r.get("history_end_date", "") for r in forecasts}) if forecasts else []
     interval_methods = sorted({r.get("interval_method", "same_month_mad") for r in forecasts}) if forecasts else []
     report = _cached_report()
-    return JSONResponse({
+    return {
         "engine_version": ENGINE_VERSION,
         "git_commit": _git_commit(),
         "data_backend": os.environ.get("DATA_BACKEND", "csv"),
@@ -1105,7 +1170,12 @@ async def api_meta() -> JSONResponse:
             for k in ("latency_ms", "welfare", "welfare_greedy", "welfare_gain_pct",
                       "matched_tons", "candidate_pairs_evaluated", "active_event")
         },
-    })
+    }
+
+
+@app.get("/api/v1/meta")
+async def api_meta() -> JSONResponse:
+    return JSONResponse(_meta_payload())
 
 
 def _summary_for(report, data: "EngineData", commodity: Optional[str] = None) -> Dict[str, Any]:
@@ -1168,22 +1238,27 @@ def _summary_for(report, data: "EngineData", commodity: Optional[str] = None) ->
     }
 
 
-@app.get("/api/v1/summary")
-async def api_summary(
-    user: AuthUser | None = GatedUser,
-    commodity: Optional[str] = Query(None),
-) -> JSONResponse:
-    """Real KPIs for the Beranda and Laporan pages, from the cached engine run."""
+def _summary_payload(commodity: Optional[str] = None) -> dict:
+    """Real KPIs for the Beranda and Laporan pages, and the get_summary bot
+    tool, from the cached engine run."""
     data = _ensure_engine()
     if commodity and commodity not in data.komoditas:
         raise HTTPException(status_code=404, detail=f"unknown commodity: {commodity}")
-    return JSONResponse({
+    return {
         "data_as_of": {
             "price_history_end": _price_history_end(),
             "bps_reference_year": BPS_REFERENCE_YEAR,
         },
         **_summary_for(_cached_report(), data, commodity),
-    })
+    }
+
+
+@app.get("/api/v1/summary")
+async def api_summary(
+    user: AuthUser | None = GatedUser,
+    commodity: Optional[str] = Query(None),
+) -> JSONResponse:
+    return JSONResponse(_summary_payload(commodity))
 
 
 def _csv_safe_cell(value: Any) -> Any:
@@ -1242,17 +1317,13 @@ async def api_report_csv(
     )
 
 
-@app.get("/api/v1/matches/explain")
-async def api_explain(
-    user: AuthUser | None = GatedUser,
-    deficit_kab_id: str = Query(..., description="Kabupaten id on the receiving side"),
-    commodity: str = Query(...),
-    limit: int = Query(5, ge=1, le=20),
-) -> JSONResponse:
+def _explain_payload(deficit_kab_id: str, commodity: str, limit: int = 5) -> dict:
     """
     Rank every viable supplier for one deficit with the same score function the
     engine used, and mark which ones the allocator actually chose. This is the
-    "why this match, and why not the next one" panel.
+    "why this match, and why not the next one" panel (api_explain), and the
+    explain_match and find_suppliers bot tools (find_suppliers is exactly
+    this question asked from the buyer's side: "who could supply me").
     """
     data = _ensure_engine()
     deficit_kab_id = _resolve_city(deficit_kab_id, data) or deficit_kab_id
@@ -1297,7 +1368,7 @@ async def api_explain(
         })
     ranked.sort(key=lambda r: -r["final_score"])
     d0 = dem[0]
-    return JSONResponse({
+    return {
         "deficit": {"kab_id": d0.kabupaten.id, "kab_nama": d0.kabupaten.nama,
                     "ipm": d0.kabupaten.ipm, "volume_tons": d0.volume_tons,
                     "price_per_kg": d0.price_per_kg, "commodity_code": commodity},
@@ -1313,7 +1384,17 @@ async def api_explain(
             "Greedy memilih pemasok berskor tertinggi yang masih punya sisa volume, "
             "diurutkan dari defisit ber-IPM terendah."
         ),
-    })
+    }
+
+
+@app.get("/api/v1/matches/explain")
+async def api_explain(
+    user: AuthUser | None = GatedUser,
+    deficit_kab_id: str = Query(..., description="Kabupaten id on the receiving side"),
+    commodity: str = Query(...),
+    limit: int = Query(5, ge=1, le=20),
+) -> JSONResponse:
+    return JSONResponse(_explain_payload(deficit_kab_id, commodity, limit))
 
 
 # --- what-if simulator -------------------------------------------------------
@@ -1420,11 +1501,11 @@ def _match_key(m) -> Tuple[str, str, str]:
     return (m.surplus.kabupaten.id, m.deficit.kabupaten.id, m.deficit.commodity.code)
 
 
-@app.post("/api/v1/simulate")
-async def api_simulate(req: SimulateRequest, user: AuthUser | None = GatedUser) -> JSONResponse:
+def _simulate_payload(req: SimulateRequest) -> dict:
     """
     Re-run the engine under a what-if scenario and diff it against the served
-    baseline. The 25 scenarios in tests/ become something a judge can click.
+    baseline (api_simulate, and the run_whatif bot tool). The 25 scenarios in
+    tests/ become something a judge, or a farmer on WhatsApp, can trigger.
     """
     data = _ensure_engine()
     if req.commodity and req.commodity not in data.komoditas:
@@ -1452,7 +1533,7 @@ async def api_simulate(req: SimulateRequest, user: AuthUser | None = GatedUser) 
     base_sum = _summary_for(baseline, data, req.commodity)["totals"]
     scen_sum = _summary_for(scenario, data, req.commodity)["totals"]
 
-    return JSONResponse({
+    return {
         "scenario": {"labels": labels, "applied": applied,
                      "allocator": scenario.run_metadata.get("allocator"),
                      "active_event": scenario.run_metadata.get("active_event"),
@@ -1472,12 +1553,21 @@ async def api_simulate(req: SimulateRequest, user: AuthUser | None = GatedUser) 
         "matches": [_serialize_match(m) for m in sorted(scen_ms, key=lambda m: -m.final_score)[:req.limit]],
         "warnings": scenario.warnings[:30],
         "external_opportunities": scenario.external_opportunities[:10],
-    })
+    }
+
+
+@app.post("/api/v1/simulate")
+async def api_simulate(req: SimulateRequest, user: AuthUser | None = GatedUser) -> JSONResponse:
+    return JSONResponse(_simulate_payload(req))
+
+
+def _presets_payload() -> dict:
+    return {k: v["label"] for k, v in SCENARIO_PRESETS.items()}
 
 
 @app.get("/api/v1/simulate/presets")
 async def api_simulate_presets() -> JSONResponse:
-    return JSONResponse({k: v["label"] for k, v in SCENARIO_PRESETS.items()})
+    return JSONResponse(_presets_payload())
 
 
 # --- price history (for the forecast chart's context window) ----------------
@@ -1501,17 +1591,12 @@ def _price_series_map():
         return {}
 
 
-@app.get("/api/v1/price-history")
-async def api_price_history(
-    user: AuthUser | None = GatedUser,
-    commodity: str = Query(...),
-    city: str = Query(..., description="IHK city id or name"),
-    days: int = Query(90, ge=7, le=1825),
-) -> JSONResponse:
+def _price_history_payload(commodity: str, city: str, days: int = 90) -> dict:
     """
-    Observed daily prices for one commodity x city, last `days` days. Lets the
-    dashboard draw history and forecast on one axis instead of a bare
-    30-day line.
+    Observed daily prices for one commodity x city, last `days` days
+    (api_price_history, and the get_price_history bot tool). Lets the
+    dashboard, and the bot, draw history and forecast on one axis instead of
+    a bare 30-day line.
     """
     data = _ensure_engine()
     city_id = _resolve_city(city, data) or city
@@ -1523,7 +1608,7 @@ async def api_price_history(
             "available_cities": available,
         })
     tail = series[-days:]
-    return JSONResponse({
+    return {
         "commodity_code": commodity,
         "city_id": city_id,
         "city_name": data.kabupaten[city_id].nama if city_id in data.kabupaten else city_id,
@@ -1531,7 +1616,17 @@ async def api_price_history(
         "history_end_date": series[-1][0].isoformat(),
         "n": len(tail),
         "points": [{"date": d.isoformat(), "price": round(float(p), 2)} for d, p in tail],
-    })
+    }
+
+
+@app.get("/api/v1/price-history")
+async def api_price_history(
+    user: AuthUser | None = GatedUser,
+    commodity: str = Query(...),
+    city: str = Query(..., description="IHK city id or name"),
+    days: int = Query(90, ge=7, le=1825),
+) -> JSONResponse:
+    return JSONResponse(_price_history_payload(commodity, city, days))
 
 # =============================================================================
 # BEHAVIOUR TELEMETRY: /api/v1/events (ingest) and /api/v1/insight/demand
@@ -1593,6 +1688,37 @@ async def api_insight_demand(
         "channel": "web", "days": days, "commodity": commodity, "count": len(rows), "rows": rows,
     })
 
+
+# =============================================================================
+# MANYCHAT: POST /manychat/webhook
+#
+# ManyChat's Default Reply calls this from an External Request action (see
+# docs/SETUP_MANYCHAT_LLM.md section 5). Everything the pipeline itself does
+# (auth, phone hashing, session memory, quota, the Gemini-then-OpenAI
+# tool-calling answer, the 7.5s deadline) lives in orchestrator.py; this
+# route is only the HTTP shell around Orchestrator.handle(), matching the
+# rest of this file's pattern of a thin route over a pure function.
+# =============================================================================
+from . import manychat as _manychat  # noqa: E402
+from .orchestrator import Orchestrator  # noqa: E402
+
+
+def _ensure_orchestrator() -> Orchestrator:
+    if state.orchestrator is None:
+        _ensure_state()  # populates state.gemini as a side effect
+        state.orchestrator = Orchestrator(
+            gemini=state.gemini,
+            subs=_ensure_subs(),
+            deadline_seconds=settings.manychat_deadline_seconds,
+        )
+    return state.orchestrator
+
+
+@app.post("/manychat/webhook", dependencies=[Depends(_manychat.require_manychat_key)])
+async def manychat_webhook(req: _manychat.ManyChatWebhookRequest) -> JSONResponse:
+    orchestrator = _ensure_orchestrator()
+    response = await orchestrator.handle(req)
+    return JSONResponse(response.model_dump())
 
 
 # =============================================================================

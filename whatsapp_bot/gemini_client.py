@@ -220,6 +220,106 @@ class GeminiClient:
             self.last_provider = "mock"
             return _mock_answer(query, context)
 
+    # -------------------------------------------------------------------------
+    # Function-calling answer over the data tools (whatsapp_bot/tools.py)
+    # -------------------------------------------------------------------------
+
+    _gemini_tool: Any = None  # built once per process; TOOL_SPECS is static
+
+    def answer_with_tools(self, system: str, message: str) -> "ToolAnswer":
+        """
+        Answer one turn with access to every read-only data tool in
+        tools.py. Up to two model round trips: the model may call a tool
+        once, see the result, and either answer or make one more call before
+        being forced to answer. This is the brain behind the ManyChat
+        orchestrator's route+compose steps; classify_intent/answer_with_context
+        above remain the simpler pipeline the Twilio and /chat paths use.
+
+        Cascades to OpenAI exactly like the two methods above: any Gemini
+        exception here falls through to self._fallback.answer_with_tools,
+        then to a fixed apology if that also fails or no fallback exists.
+        Mock mode never reaches the model at all: it returns a fixed
+        "kirim pertanyaan spesifik" nudge, since the keyword mock heuristic
+        has no tools to call and would only hallucinate specifics.
+        """
+        from .tools import ToolAnswer
+
+        if self.mock:
+            self.last_provider = "mock"
+            return ToolAnswer(text=_MOCK_TOOL_ANSWER)
+
+        try:
+            answer = self._gemini_answer_with_tools(system, message)
+            self.last_provider = "gemini"
+            return answer
+        except Exception as exc:
+            log.warning("llm.gemini_tools_failed err=%s", type(exc).__name__)
+            if self._fallback is not None:
+                answer = self._fallback.answer_with_tools(system, message)
+                self.last_provider = self._fallback.last_provider
+                return answer
+            self.last_provider = "mock"
+            return ToolAnswer(text=_MOCK_TOOL_ANSWER)
+
+    def _gemini_answer_with_tools(self, system: str, message: str) -> "ToolAnswer":
+        from google.genai import types
+        from .tools import TOOL_SPECS, ToolAnswer, execute_tool
+
+        if GeminiClient._gemini_tool is None:
+            GeminiClient._gemini_tool = types.Tool(function_declarations=[
+                types.FunctionDeclaration(name=t["name"], description=t["description"],
+                                           parameters=t["parameters"])
+                for t in TOOL_SPECS
+            ])
+        config = types.GenerateContentConfig(system_instruction=system, tools=[GeminiClient._gemini_tool])
+
+        contents: list = [types.Content(role="user", parts=[types.Part(text=message)])]
+        calls_made: List[Dict[str, Any]] = []
+        # Up to 2 tool calls per turn (spec 2.2 step 7), each its own model
+        # round trip: call, see whether it wants a tool, execute it, loop.
+        # A response with no tool call returns immediately, at 1 round trip
+        # for the common case of a question the model can answer outright
+        # (get_data_freshness, "what can you do", etc.).
+        for _ in range(2):
+            resp = self._model.models.generate_content(model=self.model_name, contents=contents, config=config)
+            candidate = resp.candidates[0] if resp.candidates else None
+            parts = candidate.content.parts if candidate and candidate.content else []
+            fn_parts = [p for p in parts if getattr(p, "function_call", None)]
+            if not fn_parts:
+                text = (resp.text or "").strip()
+                if not text:
+                    raise ValueError("Gemini returned neither a tool call nor text")
+                return ToolAnswer(text=text, tool_calls=calls_made)
+            fc = fn_parts[0].function_call
+            args = dict(fc.args or {})
+            result = execute_tool(fc.name, args)
+            calls_made.append({"name": fc.name, "args": args, "ok": "error" not in result})
+            contents.append(candidate.content)
+            contents.append(types.Content(
+                role="user",
+                parts=[types.Part.from_function_response(name=fc.name, response={"result": result})],
+            ))
+        # Both allowed tool calls are spent. One more call, tools disabled,
+        # forces a text answer instead of a third round; a real model never
+        # returns a function call here since none was offered, so reading
+        # .text directly is safe, and an empty one still raises cleanly.
+        no_tools_config = types.GenerateContentConfig(system_instruction=system)
+        resp = self._model.models.generate_content(model=self.model_name, contents=contents, config=no_tools_config)
+        text = (resp.text or "").strip()
+        if not text:
+            raise ValueError("Gemini produced no final text after the tool round trip")
+        return ToolAnswer(text=text, tool_calls=calls_made)
+
+
+# A fixed, honest degrade for the tool-calling path when every provider
+# fails. Distinct from _mock_answer (which pattern-matches keywords and can
+# sound like a real answer), because a wrong-sounding guess on a data
+# question is worse here than an admission the bot could not look it up.
+_MOCK_TOOL_ANSWER = (
+    "Maaf, saya sedang tidak bisa mengambil data untuk menjawab ini. "
+    "Coba lagi sebentar lagi, atau buka dashboard di agriflow.farm."
+)
+
 
 # =============================================================================
 # MOCK FALLBACKS — lightweight keyword heuristics

@@ -279,6 +279,8 @@ def posture_findings(settings) -> List[str]:
         findings.append("BILLING_MOCK is on; orders settle without a payment provider.")
     if not settings.phone_hash_salt:
         findings.append("PHONE_HASH_SALT is unset; phone hashes are reversible by brute force.")
+    if not settings.manychat_webhook_secret:
+        findings.append("MANYCHAT_WEBHOOK_SECRET is unset; POST /manychat/webhook refuses every request until it is set (fails closed, not open).")
     if os.getenv("API_DOCS_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"}:
         findings.append("API_DOCS_ENABLED exposes the OpenAPI schema and Swagger UI.")
     return findings

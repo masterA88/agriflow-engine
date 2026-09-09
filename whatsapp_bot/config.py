@@ -69,6 +69,14 @@ class Settings:
     # Server
     public_base_url: str = os.getenv("PUBLIC_BASE_URL", "http://localhost:8000")
 
+    # ManyChat: the WhatsApp transport (whatsapp_bot/manychat.py,
+    # orchestrator.py). Empty MANYCHAT_WEBHOOK_SECRET refuses every request
+    # to POST /manychat/webhook rather than accepting an unauthenticated one.
+    manychat_webhook_secret: str = os.getenv("MANYCHAT_WEBHOOK_SECRET", "")
+    manychat_api_token: str = os.getenv("MANYCHAT_API_TOKEN", "")
+    manychat_api_base: str = os.getenv("MANYCHAT_API_BASE", "https://api.manychat.com")
+    manychat_deadline_seconds: float = float(os.getenv("MANYCHAT_DEADLINE_SECONDS", "7.5"))
+
     # Free tier / billing
     # Master switch for the WhatsApp paywall. Default OFF: the quota machinery
     # ships complete and tested, but WhatsApp stays unlimited until the business

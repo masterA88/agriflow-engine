@@ -118,3 +118,87 @@ class OpenAiClient:
             log.warning("llm.openai_answer_failed err=%s", type(exc).__name__)
             self.last_provider = "mock"
             return _mock_answer(query, context)
+
+    # -------------------------------------------------------------------------
+    # Function-calling answer over the data tools (whatsapp_bot/tools.py)
+    # -------------------------------------------------------------------------
+
+    _openai_tools: Any = None  # built once per process; TOOL_SPECS is static
+
+    def answer_with_tools(self, system: str, message: str) -> "ToolAnswer":
+        """Mirrors GeminiClient.answer_with_tools exactly: same system
+        prompt, same tools.py, same two-round-trip bound, same tool-call
+        logging shape. See that method's docstring for the full contract.
+        This one never falls back to another provider; when GeminiClient
+        calls it as ITS fallback, this being the end of the line is exactly
+        the point."""
+        from .tools import ToolAnswer
+
+        if self.mock:
+            self.last_provider = "mock"
+            return ToolAnswer(text=_MOCK_TOOL_ANSWER)
+        try:
+            answer = self._openai_answer_with_tools(system, message)
+            self.last_provider = "openai"
+            return answer
+        except Exception as exc:
+            log.warning("llm.openai_tools_failed err=%s", type(exc).__name__)
+            self.last_provider = "mock"
+            return ToolAnswer(text=_MOCK_TOOL_ANSWER)
+
+    def _openai_answer_with_tools(self, system: str, message: str) -> "ToolAnswer":
+        from .tools import TOOL_SPECS, ToolAnswer, execute_tool
+
+        if OpenAiClient._openai_tools is None:
+            OpenAiClient._openai_tools = [
+                {"type": "function", "name": t["name"], "description": t["description"],
+                 "parameters": t["parameters"], "strict": False}
+                for t in TOOL_SPECS
+            ]
+            # strict=False: several tool schemas here have optional fields
+            # (not every property in `required`), which OpenAI's strict mode
+            # rejects outright. Loosening this is the honest tradeoff, not a
+            # workaround for a bug: the same schema also serves Gemini, which
+            # has no equivalent strict flag.
+
+        conversation: list = [{"role": "user", "content": message}]
+        calls_made: List[Dict[str, Any]] = []
+        # Same bound as GeminiClient.answer_with_tools: up to 2 tool calls,
+        # each its own round trip, before a final tools-disabled call forces
+        # a text answer. See that method's comment for the full rationale.
+        for _ in range(2):
+            resp = self._client.responses.create(
+                model=self.model_name, instructions=system,
+                input=conversation, tools=OpenAiClient._openai_tools,
+            )
+            fn_calls = [item for item in resp.output if getattr(item, "type", None) == "function_call"]
+            if not fn_calls:
+                text = (resp.output_text or "").strip()
+                if not text:
+                    raise ValueError("OpenAI returned neither a tool call nor text")
+                return ToolAnswer(text=text, tool_calls=calls_made)
+            fc = fn_calls[0]
+            try:
+                args = json.loads(fc.arguments or "{}")
+            except json.JSONDecodeError:
+                args = {}
+            result = execute_tool(fc.name, args)
+            calls_made.append({"name": fc.name, "args": args, "ok": "error" not in result})
+            conversation.extend(item.model_dump() if hasattr(item, "model_dump") else item for item in resp.output)
+            conversation.append({
+                "type": "function_call_output", "call_id": fc.call_id,
+                "output": json.dumps(result, ensure_ascii=False),
+            })
+        resp = self._client.responses.create(model=self.model_name, instructions=system, input=conversation)
+        text = (resp.output_text or "").strip()
+        if not text:
+            raise ValueError("OpenAI produced no final text after the tool round trip")
+        return ToolAnswer(text=text, tool_calls=calls_made)
+
+
+# Same fixed degrade string GeminiClient uses, kept as one shared string
+# would require an import cycle; two literals this short are not worth one.
+_MOCK_TOOL_ANSWER = (
+    "Maaf, saya sedang tidak bisa mengambil data untuk menjawab ini. "
+    "Coba lagi sebentar lagi, atau buka dashboard di agriflow.farm."
+)

@@ -1,11 +1,11 @@
 # Setup: ManyChat + Gemini + OpenAI for the AgriFlow WhatsApp bot
 
 Author: Hilmi (https://master-hilmi.vercel.app/)
-Date: 2026-09-08, OpenAI fallback section added 2026-09-09. Facts below were checked against the vendor pages on those dates; prices and model names move fast on both sides (Gemini moved 2.5 to 3.8 in four months; OpenAI's lineup turned over just as much), so re-check before paying.
+Date: 2026-09-08, OpenAI fallback section added 2026-09-09, section 3c (the built orchestrator) added 2026-09-10. Facts below were checked against the vendor pages on those dates; prices and model names move fast on both sides (Gemini moved 2.5 to 3.8 in four months; OpenAI's lineup turned over just as much), so re-check before paying.
 
-This is the operator runbook. The architecture and the reasons behind it live in the build-ready spec (`k1/research/agriflow-chatbot-architecture/drafts/spec-manychat-gemini-behaviour-2026-09-08.md`). That spec still describes a single-provider (Gemini-only) orchestrator; the fallback in section 3b below sits underneath it as an implementation detail the spec's route/compose steps can call into, whichever provider answers.
+This is the operator runbook. The architecture and the reasons behind it live in the build-ready spec (`k1/research/agriflow-chatbot-architecture/drafts/spec-manychat-gemini-behaviour-2026-09-08.md`). That spec describes a single-provider (Gemini-only) orchestrator that answers from a short RAG context; the fallback in section 3b sits underneath it as an implementation detail the spec's route/compose steps call into, and section 3c below describes how those same route/compose steps were actually built: not a RAG context, but function-calling tools over the live engine data, so a question can be about anything the platform tracks, not only what a static context blob anticipated.
 
-**Where this lives in ManyChat: nowhere.** ManyChat only ever calls one thing, `POST /manychat/webhook` on our backend. Which LLM answers a given message is decided entirely inside that backend (whatsapp_bot/gemini_client.py), turn by turn. Nothing in the ManyChat flow builder changes because there are now two providers behind the webhook instead of one.
+**Where this lives in ManyChat: nowhere.** ManyChat only ever calls one thing, `POST /manychat/webhook` on our backend. Which LLM answers a given message, and which of the 15 data tools it calls to do so, is decided entirely inside that backend (`whatsapp_bot/orchestrator.py`, calling into `whatsapp_bot/gemini_client.py`'s provider cascade), turn by turn. Nothing in the ManyChat flow builder changes because there are two providers, or fifteen tools, behind the webhook instead of a fixed script.
 
 ## 0. Where things stand today
 
@@ -15,7 +15,7 @@ This is the operator runbook. The architecture and the reasons behind it live in
 | Gemini billing | Not set up. The "Set up billing" link is on the API keys page. |
 | ManyChat | Account exists (`fb5562173`), plan **Trial**, no channel connected. The WhatsApp connect wizard is at "Which number do you want to use?". |
 | WhatsApp number | None usable. The number in `whatsapp_bot/config.py` is Twilio's shared sandbox (`+14155238886`), which cannot move. |
-| Backend endpoint | `POST /manychat/webhook` does not exist yet; it is part of the DEA build from the spec. ManyChat cannot be wired end to end until it is deployed on the HF Space. |
+| Backend endpoint | `POST /manychat/webhook` is built and tested (670 tests passing as of 2026-09-10): shared-secret auth, session memory, quota, the Gemini-then-OpenAI tool-calling cascade over 15 data tools, and the 7.5s deadline/pending push. See section 3c. Not yet on the HF Space, and `MANYCHAT_WEBHOOK_SECRET` has not been generated. |
 
 ## 1. Gemini: which model
 
@@ -106,6 +106,46 @@ Pin the cheapest model that passes the Javanese grading. If none passes krama, t
 
 **Watching which provider actually answered.** `GeminiClient.last_provider` is set to `"gemini"`, `"openai"`, or `"mock"` after every call and logged as a warning line (`llm.gemini_classify_failed`, `llm.openai_classify_failed`, etc.) whenever a tier fails over. There is no dashboard for this yet; for now, `grep llm\\. ` in the HF Space logs during the pilot to see how often the fallback actually fires. If it fires often, that is itself a signal Gemini's rate limit or model choice needs attention, not that OpenAI needs to become primary.
 
+## 3c. What got built: the tool-calling orchestrator (2026-09-10)
+
+The single-provider, fixed-context design the spec describes has been replaced end to end by function-calling tools over the live engine data, so the bot is no longer limited to the six hand-classified intents the Twilio path still uses (`whatsapp_bot/intent.py`). A ManyChat message can now ask about anything the platform tracks, in Indonesian or Javanese, and the model itself decides which tools to call to answer it.
+
+**The 15 tools** (`whatsapp_bot/tools.py`; one JSON-Schema spec list shared by both providers, so Gemini and OpenAI see identical capabilities):
+
+| Tool | Answers |
+|---|---|
+| `list_commodities` | Every commodity code and its Indonesian name |
+| `list_kabupaten` | All 38 kabupaten/kota: id, name, coordinates, IPM, population |
+| `get_price` | Producer or consumer price for one commodity in one kabupaten |
+| `get_surplus_deficit` | Every kabupaten's surplus or deficit volume and price for one commodity |
+| `find_buyers` | Which deficit areas a surplus kabupaten's output was actually matched to |
+| `find_suppliers` | Ranked suppliers for a deficit kabupaten, and which were chosen |
+| `explain_match` | Full score breakdown behind a match, including why a rival supplier lost |
+| `get_forecast` | 30-day price forecast with a P10 to P90 band |
+| `get_price_history` | Observed daily prices over the last N days |
+| `get_anomalies` | Detected price spikes or drops (Hampel/MAD scan) |
+| `get_summary` | Headline KPIs: surplus, deficit and matched tons, coverage, arbitrage value |
+| `run_whatif` | Re-runs the engine under a disruption preset and diffs it against baseline |
+| `list_presets` | The named what-if scenarios `run_whatif` accepts |
+| `get_data_freshness` | The exact dates behind every number the bot can cite |
+| `get_report_link` | A downloadable CSV link for the full match list |
+
+Every tool calls the same payload-builder function the dashboard's own REST API already calls, so a WhatsApp answer and the dashboard can never disagree about a number. For example, `find_buyers` reuses `_matches_payload`, the exact function behind `GET /api/v1/matches`. `search_policy` from the original spec is left out on purpose: the `policy_docs` table it would read from is still empty.
+
+**How a turn is answered** (`whatsapp_bot/orchestrator.py`): Gemini gets the message plus the 15 tool specs. It may call up to two tools, one round trip each, seeing the real result before deciding whether to call another or answer. A third round is never offered; the model is forced to answer in text after the second tool result. If Gemini itself errors, times out, or returns nothing usable, the identical prompt and identical tools go to OpenAI (section 3b's fallback, now extended to carry the tool-calling loop too). If both fail, a fixed apology is returned, never a guessed number.
+
+**Memory.** Each subscriber's last 10 turns plus a rolling summary are kept in the `chat_session` table (Postgres, when `SUPABASE_DB_URL` is set) so a follow-up like "harganya di sana gimana" resolves against what was just discussed. Without a database configured, the same session shape lives in an in-process dictionary instead; memory then does not survive a restart.
+
+**Language.** Every turn is classified Indonesian or Javanese (`whatsapp_bot/language.py`) before the model sees it, and a language-specific system prompt, not a translation step, tells the model which language and register to answer in. Language never changes which tools exist or what they return, only the words wrapped around the numbers.
+
+**The 7.5-second deadline.** ManyChat's own External Request action times out at 10 seconds. If the tool-calling round trip has not finished by 7.5s, the webhook replies immediately with a short holding line in the user's language and `agriflow_status: "pending"`; the same answer keeps computing in the background and is pushed the moment it finishes through ManyChat's Public API (`POST /fb/sending/sendContent`), which requires the 24-hour customer-service window still be open. Either path ends in exactly one answer reaching the user; "pending" only changes how it arrives, never whether it arrives.
+
+**Billing and quota are unchanged.** `MULAI`, `BANTUAN`, `STATUS`, `PRO`, `BERHENTI` are still free and unmetered, and a metered turn still only consumes quota when a tool call actually returned data, so an unanswerable question costs nothing, exactly as the Twilio path already worked.
+
+**Test coverage as of 2026-09-10:** 670 tests passing. `tests/test_tool_calling.py` covers the round-trip loop against fake Gemini and OpenAI SDK responses, `tests/test_orchestrator.py` covers the full pipeline (commands before quota, quota before the model, the language switch, the deadline split, session persistence), and `tests/test_manychat_webhook.py` covers the real FastAPI route: the auth header is enforced, an unset secret fails closed, and a correctly authenticated request gets a real mock-mode answer back.
+
+**What is left is not code.** Generate `MANYCHAT_WEBHOOK_SECRET` and set it plus the other `MANYCHAT_*` variables (section 6) as HF Space secrets, redeploy the Space, then do sections 4 and 5 below: the WhatsApp number and the ManyChat flow itself still do not exist.
+
 ## 4. ManyChat: plan, number, connection (founder does this)
 
 Verified from ManyChat's help centre (articles 25800276116508 and 25800228332572, updated early September 2026):
@@ -122,9 +162,9 @@ Steps:
 5. Settings, **API**, generate the token. Store it as `MANYCHAT_API_TOKEN` in `.env` locally and as an HF Space secret. Refreshing the token disables everything that used the old one.
 6. Settings, **AI**: turn every ManyChat AI feature **off** (AI Step, Intentions, AI-generated replies). Gemini in our backend is the only model that talks to users, and ManyChat's AI terms allow them to use inputs and outputs to improve their features.
 
-## 5. ManyChat: the flow (after the backend endpoint is live)
+## 5. ManyChat: the flow (after the backend is deployed)
 
-Do this only once DEA has deployed `POST /manychat/webhook` on the HF Space; until then the External Request has nothing to call. The exact request and response JSON, the custom-field mapping and the 7.5-second deadline rule are in the spec, sections 1.3 to 1.7. In short:
+The endpoint itself is built (section 3c); do this once `MANYCHAT_WEBHOOK_SECRET` is set on the HF Space and the Space has been redeployed with this code, since until then the External Request has nothing to authenticate against. The exact request and response JSON, the custom-field mapping and the 7.5-second deadline rule are in the spec, sections 1.3 to 1.7, and now also built exactly that way in `whatsapp_bot/manychat.py` and `whatsapp_bot/orchestrator.py`. In short:
 
 1. Settings, **Fields**, create custom fields (text unless noted): `agriflow_reply`, `agriflow_status`, `agriflow_lang`, `agriflow_intent`, `agriflow_token`. Note each field's numeric id (Public API `getCustomFields`); they go into the `MANYCHAT_FIELD_*` variables.
 2. Automation, **Default Reply** (fires on any message that matches no keyword): one **External Request** action, `POST https://masteraaa123-agriflow-api.hf.space/manychat/webhook`, header `X-AgriFlow-Key: <MANYCHAT_WEBHOOK_SECRET>`, body with `subscriber_id`, `phone`, `first_name`, `last_input_text`, `last_interaction`. Map the response fields to the custom fields above.
@@ -142,6 +182,7 @@ OPENAI_MODEL=gpt-5.6-luna
 MANYCHAT_WEBHOOK_SECRET=        # 32 random bytes, base64url; production refuses to boot without it
 MANYCHAT_API_TOKEN=             # secret, from ManyChat Settings > API
 MANYCHAT_API_BASE=https://api.manychat.com
+MANYCHAT_DEADLINE_SECONDS=7.5   # how long the webhook waits before replying "pending" instead of the full answer
 MANYCHAT_FIELD_REPLY_ID=
 MANYCHAT_FIELD_STATUS_ID=
 MANYCHAT_FIELD_TOKEN_ID=
@@ -161,7 +202,7 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 1. Founder: Gemini billing (section 2), then run the language eval (section 3) and pick the model.
 2. Founder: OpenAI billing and key (section 3b), then run the same eval against it for comparison. This step is independent of everything else and can happen any time before launch. It does not block or get blocked by ManyChat setup.
 3. Founder: WhatsApp number, Meta Business Portfolio, ManyChat Pro, connect the channel, API token, AI features off (section 4). Start Meta business verification the same day.
-4. DEA: build `POST /manychat/webhook`, `chat_session`, `intent_event`, the Gemini-then-OpenAI orchestrator, deploy to the HF Space with the secrets above.
+4. Done: `POST /manychat/webhook`, `chat_session` memory, `intent_event` logging, and the Gemini-then-OpenAI tool-calling orchestrator over the 15 data tools are built and tested (section 3c). What is left here is deployment, not code: generate `MANYCHAT_WEBHOOK_SECRET` (section 6), set it plus the other `MANYCHAT_*` variables as HF Space secrets, and redeploy.
 5. Founder with the team: build the ManyChat flow (section 5), test from a real phone, then rehearse the Javanese demo script.
 
 ## 8. Costs to expect for the pilot month
