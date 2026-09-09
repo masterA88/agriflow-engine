@@ -8,7 +8,8 @@ matching engine via WhatsApp Business API.
 Architecture:
     Twilio webhook → server.py → intent.py → handlers.py → matching_engine
                                      ↓
-                                gemini_client.py (LLM)
+                                gemini_client.py (LLM: Gemini, then
+                                openai_client.py as fallback, then mock)
 
 Public entrypoints:
     server.app             — FastAPI app

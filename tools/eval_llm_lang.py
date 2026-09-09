@@ -1,21 +1,30 @@
-"""Evaluate Gemini models on Indonesian and Javanese before pinning one for the bot.
+"""Evaluate Gemini and/or OpenAI models on Indonesian and Javanese before
+pinning one for the bot, on the same 30 utterances and the same prompt.
 
 Runs a fixed set of 30 user utterances (15 Indonesian, 15 Javanese in ngoko and
-krama) through one or more Gemini models with the AgriFlow assistant system
-prompt, and prints every reply so a Javanese speaker can grade them. It also
-records a rough automatic signal: whether the reply reuses the language of the
-question (checked with a tiny word list, not a real classifier).
+krama) through one or more models and prints every reply so a Javanese
+speaker can grade them. It also records a rough automatic signal: whether the
+reply reuses the language of the question (checked with a tiny word list, not
+a real classifier).
 
 Usage:
-    set GEMINI_API_KEY=...                       (or put it in .env)
-    python tools/eval_gemini_lang.py
-    python tools/eval_gemini_lang.py --models gemini-3.8-flash gemini-3.5-flash-lite
-    python tools/eval_gemini_lang.py --out .tmp/eval_lang.md
+    set GEMINI_API_KEY=...    (or put it in .env)
+    set OPENAI_API_KEY=...    (only needed for --provider openai)
+    python tools/eval_llm_lang.py                                       # Gemini, default models
+    python tools/eval_llm_lang.py --provider openai                     # OpenAI, default models
+    python tools/eval_llm_lang.py --provider both --out .tmp/eval_lang.md
+    python tools/eval_llm_lang.py --provider gemini --models gemini-3.8-flash gemini-3.5-flash-lite
+    python tools/eval_llm_lang.py --provider openai --models gpt-5.6-luna gpt-5.6-terra
 
 The script never calls the AgriFlow API; the prompt tells the model that
 prices come from tools it does not have here, so it should answer the
 language part and say it needs the data tool for numbers. That is the
 behaviour we want on the real bot as well.
+
+This is the same eval the setup runbook (docs/SETUP_MANYCHAT_LLM.md) asks the
+founder to run before pinning either provider's model. The point is not to
+trust a provider's marketing about "supports Indonesian," but to look at 30
+real replies, especially the Javanese ones, before it talks to a farmer.
 """
 from __future__ import annotations
 
@@ -79,6 +88,11 @@ JV_CUES = {"ing", "iki", "pira", "piye", "endi", "sampeyan", "panjenengan", "ngg
 ID_CUES = {"yang", "di", "ini", "berapa", "bagaimana", "mana", "anda", "kamu", "saya",
            "tidak", "harga", "data", "untuk", "dengan", "adalah", "hari"}
 
+DEFAULT_MODELS = {
+    "gemini": ["gemini-3.8-flash", "gemini-3.5-flash-lite"],
+    "openai": ["gpt-5.6-luna", "gpt-5.6-terra"],
+}
+
 
 def guess_lang(text: str) -> str:
     words = {w.strip(".,?!:;()\"'").lower() for w in text.split()}
@@ -89,54 +103,82 @@ def guess_lang(text: str) -> str:
     return "jv" if jv > idn else "id"
 
 
-def load_key() -> str:
-    key = os.getenv("GEMINI_API_KEY", "")
+def load_key(env_var: str) -> str:
+    key = os.getenv(env_var, "")
     if key:
         return key
     env = ROOT / ".env"
     if env.exists():
         for line in env.read_text(encoding="utf-8").splitlines():
-            if line.startswith("GEMINI_API_KEY="):
+            if line.startswith(f"{env_var}="):
                 return line.split("=", 1)[1].strip().strip('"').strip("'")
-    sys.exit("GEMINI_API_KEY not set (env var or .env).")
+    sys.exit(f"{env_var} not set (env var or .env).")
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--models", nargs="+", default=["gemini-3.8-flash", "gemini-3.5-flash-lite"])
-    ap.add_argument("--out", default=None, help="write a markdown report here")
-    ap.add_argument("--sleep", type=float, default=1.0, help="seconds between calls (free tier RPM)")
-    args = ap.parse_args()
-
-    from google import genai
+def call_gemini(client, model: str, text: str) -> str:
     from google.genai import types
+    resp = client.models.generate_content(
+        model=model, contents=text,
+        config=types.GenerateContentConfig(system_instruction=SYSTEM, temperature=0.2),
+    )
+    return (resp.text or "").strip()
 
-    client = genai.Client(api_key=load_key())
-    lines = ["# Gemini language eval", "", f"Models: {', '.join(args.models)}", ""]
-    for model in args.models:
+
+def call_openai(client, model: str, text: str) -> str:
+    resp = client.responses.create(model=model, instructions=SYSTEM, input=text)
+    return (resp.output_text or "").strip()
+
+
+def run_provider(provider: str, models: list[str], out_lines: list[str], sleep: float) -> None:
+    if provider == "gemini":
+        from google import genai
+        client = genai.Client(api_key=load_key("GEMINI_API_KEY"))
+        call = call_gemini
+    else:
+        from openai import OpenAI
+        client = OpenAI(api_key=load_key("OPENAI_API_KEY"))
+        call = call_openai
+
+    for model in models:
         ok = 0
-        lines += [f"## {model}", "", "| # | lang | utterance | reply | reply lang |", "|---|---|---|---|---|"]
+        out_lines += [f"## {provider}: {model}", "", "| # | lang | utterance | reply | reply lang |", "|---|---|---|---|---|"]
         for i, (lang, text) in enumerate(UTTERANCES, 1):
             t0 = time.time()
             try:
-                resp = client.models.generate_content(
-                    model=model,
-                    contents=text,
-                    config=types.GenerateContentConfig(system_instruction=SYSTEM, temperature=0.2),
-                )
-                reply = (resp.text or "").strip().replace("\n", " ")
+                reply = call(client, model, text).replace("\n", " ")
+                if not reply:
+                    reply = "ERROR: empty response"
             except Exception as exc:  # noqa: BLE001
                 reply = f"ERROR: {exc}"
             dt = time.time() - t0
             got = guess_lang(reply)
             same = got == lang
             ok += int(same)
-            print(f"[{model}] {i:02d} {lang}->{got} {dt:4.1f}s | {text}\n    {reply}\n")
-            lines.append(f"| {i} | {lang} | {text} | {reply.replace('|', '/')} | {got}{'' if same else ' (switched)'} |")
-            time.sleep(args.sleep)
-        summary = f"{model}: {ok}/{len(UTTERANCES)} replies kept the user's language (crude check)."
+            print(f"[{provider}:{model}] {i:02d} {lang}->{got} {dt:4.1f}s | {text}\n    {reply}\n")
+            out_lines.append(f"| {i} | {lang} | {text} | {reply.replace('|', '/')} | {got}{'' if same else ' (switched)'} |")
+            time.sleep(sleep)
+        summary = f"{provider}:{model}: {ok}/{len(UTTERANCES)} replies kept the user's language (crude check)."
         print(summary)
-        lines += ["", summary, ""]
+        out_lines += ["", summary, ""]
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--provider", choices=["gemini", "openai", "both"], default="gemini")
+    ap.add_argument("--models", nargs="+", default=None,
+                     help="defaults to DEFAULT_MODELS for the chosen provider; ignored with --provider both")
+    ap.add_argument("--out", default=None, help="write a markdown report here")
+    ap.add_argument("--sleep", type=float, default=1.0, help="seconds between calls (free tier RPM)")
+    args = ap.parse_args()
+
+    providers = ["gemini", "openai"] if args.provider == "both" else [args.provider]
+    lines = ["# LLM language eval (Indonesian + Javanese)", ""]
+    for provider in providers:
+        models = args.models if (args.models and args.provider != "both") else DEFAULT_MODELS[provider]
+        lines.append(f"Provider **{provider}**, models: {', '.join(models)}")
+        lines.append("")
+        run_provider(provider, models, lines, args.sleep)
+
     if args.out:
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.out).write_text("\n".join(lines), encoding="utf-8")

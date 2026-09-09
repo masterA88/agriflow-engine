@@ -1,5 +1,5 @@
 """
-Gemini LLM wrapper.
+Gemini LLM wrapper, with an OpenAI fallback tier.
 
 Two methods:
     classify_intent(message)       — structured intent + slots JSON
@@ -8,14 +8,32 @@ Two methods:
 Mock mode (default): returns deterministic canned responses derived from
 keyword matching on the message. Lets the rest of the pipeline run end-to-end
 without any API key, so demos work from a fresh clone.
+
+Three-tier cascade, real mode: Gemini, then OpenAI, then the local mock
+heuristic. server.py, intent.py, and handlers.py only ever talk to
+GeminiClient, and none of them know a second provider exists. OpenAiClient
+(openai_client.py) is constructed here, lazily, only when OPENAI_API_KEY is
+set; with no key the behaviour is exactly what it was before this fallback
+existed (Gemini, then straight to the mock heuristic). The import of
+OpenAiClient is deferred to inside __init__ rather than done at module load,
+because openai_client.py imports the prompts and mock helpers below from
+this module, and a module-level import here would be circular. See
+whatsapp_bot/openai_client.py and tools/eval_llm_lang.py.
+
+`last_provider` records which tier actually answered the most recent call
+("gemini" | "openai" | "mock"), for logs and for the language eval script.
+It is not persisted anywhere by itself.
 """
 
 from __future__ import annotations
 import json
+import logging
 import re
 from typing import Any, Dict, Optional
 
 from .config import settings
+
+log = logging.getLogger("agriflow.llm")
 
 
 # =============================================================================
@@ -102,7 +120,7 @@ Konteks AgriFlow:
 # =============================================================================
 
 class GeminiClient:
-    """Wrapper for google-generativeai. Auto-falls back to mock if no API key."""
+    """Wrapper for google-generativeai, with an optional OpenAI fallback tier."""
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None,
                  mock: Optional[bool] = None):
@@ -112,8 +130,18 @@ class GeminiClient:
             settings.mock_mode or not self.api_key
         )
         self._model = None
+        self.last_provider = "mock" if self.mock else "gemini"
         if not self.mock:
             self._init_real_client()
+        # The fallback is a second, independently-mocked client: constructing
+        # it never raises (OpenAiClient itself falls back to mock with no
+        # key), so this is safe even when self.mock is True (fallback simply
+        # goes unused, since the methods below short-circuit before reaching
+        # it). Deferred import; see the module docstring for why.
+        self._fallback = None
+        if not self.mock and settings.openai_api_key:
+            from .openai_client import OpenAiClient
+            self._fallback = OpenAiClient()
 
     def _init_real_client(self) -> None:
         try:
@@ -133,6 +161,7 @@ class GeminiClient:
     def classify_intent(self, message: str) -> Dict[str, Any]:
         """Return {"intent": str, "slots": dict}. Falls back to {"intent": "fallback"}."""
         if self.mock:
+            self.last_provider = "mock"
             return _mock_classify(message)
 
         prompt = f"{INTENT_SYSTEM_PROMPT}\n\nPesan pengguna: {message!r}\n\nOutput JSON:"
@@ -145,10 +174,21 @@ class GeminiClient:
             text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.MULTILINE).strip()
             parsed = json.loads(text)
             if "intent" not in parsed:
-                return {"intent": "fallback", "slots": {}}
+                raise ValueError("Gemini response carried no 'intent' key")
             parsed.setdefault("slots", {})
+            self.last_provider = "gemini"
             return parsed
-        except (json.JSONDecodeError, AttributeError, Exception):
+        except Exception as exc:
+            log.warning("llm.gemini_classify_failed err=%s", type(exc).__name__)
+            if self._fallback is not None:
+                # OpenAiClient never raises here: it degrades to its own mock
+                # internally. Trust its last_provider rather than the fact
+                # that the call returned, or a silent OpenAI failure would be
+                # mislabelled "openai".
+                parsed = self._fallback.classify_intent(message)
+                self.last_provider = self._fallback.last_provider
+                return parsed
+            self.last_provider = "mock"
             return {"intent": "fallback", "slots": {}}
 
     # -------------------------------------------------------------------------
@@ -157,6 +197,7 @@ class GeminiClient:
 
     def answer_with_context(self, query: str, context: str) -> str:
         if self.mock:
+            self.last_provider = "mock"
             return _mock_answer(query, context)
 
         system = ANSWER_SYSTEM_PROMPT.format(context=context)
@@ -165,8 +206,18 @@ class GeminiClient:
             resp = self._model.models.generate_content(
                 model=self.model_name, contents=prompt,
             )
-            return (resp.text or "").strip() or _mock_answer(query, context)
-        except Exception:
+            text = (resp.text or "").strip()
+            if not text:
+                raise ValueError("Gemini returned an empty answer")
+            self.last_provider = "gemini"
+            return text
+        except Exception as exc:
+            log.warning("llm.gemini_answer_failed err=%s", type(exc).__name__)
+            if self._fallback is not None:
+                text = self._fallback.answer_with_context(query, context)
+                self.last_provider = self._fallback.last_provider
+                return text
+            self.last_provider = "mock"
             return _mock_answer(query, context)
 
 

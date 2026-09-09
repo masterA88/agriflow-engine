@@ -117,7 +117,8 @@ The bot should reply with current prices from sample data within 1-3 seconds.
 | `server.py` | FastAPI app, webhook + debug endpoints, lifespan-loaded engine data |
 | `intent.py` | Slot extraction + normalization (kab name → id, commodity name → code) |
 | `handlers.py` | One function per intent, formats reply text |
-| `gemini_client.py` | Gemini wrapper with mock-mode keyword heuristics |
+| `gemini_client.py` | Gemini wrapper, falls back to `openai_client.py` on error, then a mock-mode keyword heuristic |
+| `openai_client.py` | OpenAI wrapper, same contract as `gemini_client.py`; the fallback tier, unused unless `OPENAI_API_KEY` is set |
 | `twilio_client.py` | TwiML response builder + signature validation |
 | `config.py` | `Settings` dataclass loaded from env / .env |
 

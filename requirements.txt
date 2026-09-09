@@ -31,6 +31,7 @@ httpx==0.28.1            # required by fastapi.testclient
 # WhatsApp bot (M2 milestone — Twilio webhook + Gemini RAG)
 twilio==9.10.9
 google-genai==2.3.0      # NEW SDK (google-generativeai deprecated 2025)
+openai==3.11.0           # fallback LLM tier, whatsapp_bot/openai_client.py
 python-dotenv==1.2.2
 python-multipart==0.0.32 # FastAPI form parsing for Twilio webhook
 

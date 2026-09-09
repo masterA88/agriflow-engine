@@ -50,11 +50,21 @@ class Settings:
         os.getenv("TWILIO_VALIDATE_SIGNATURE"), default=False
     )
 
-    # Gemini
+    # Gemini — primary LLM (see whatsapp_bot/gemini_client.py)
     gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
     # gemini-1.5-flash is retired; 2.5 Flash-Lite is the cheapest current tier and
     # itself retires 16 Oct 2026 (budget on its successor for a Q4 pilot).
     gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+
+    # OpenAI — second-tier fallback, tried only when Gemini errors, times out,
+    # or returns something unparsable (see whatsapp_bot/openai_client.py and
+    # the cascade wired in GeminiClient). Empty key disables this tier
+    # entirely: behaviour is then identical to Gemini-only, as it was before
+    # this fallback existed. gpt-5.6-luna is OpenAI's cheap/fast tier as of
+    # 2026-09, the rough analogue of gemini-2.5-flash-lite — re-verify before
+    # trusting this name months from now; see docs/SETUP_MANYCHAT_LLM.md.
+    openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
+    openai_model: str = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")
 
     # Server
     public_base_url: str = os.getenv("PUBLIC_BASE_URL", "http://localhost:8000")
