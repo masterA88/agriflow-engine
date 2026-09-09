@@ -1,762 +1,2456 @@
 {
-  "generated_at": "2026-08-29T13:02:26.061738+00:00",
+  "generated_at": "2026-09-09T12:25:54.611028+00:00",
   "method": "seasonal_naive_baseline",
   "interval_method": "split_conformal_rolling_origin",
   "horizon_days": 30,
   "holdout": "last N calendar days, leakage-free",
-  "overall_mape_pct": 10.82,
-  "overall_ci80_coverage_pct": 79.5,
+  "overall_mape_pct": 10.37,
+  "overall_ci80_coverage_pct": 82.6,
   "per_commodity": {
     "bawang_merah": {
-      "mape_pct": 19.45,
-      "mae_idr": 9769.0,
-      "rmse_idr": 11075.0,
-      "ci80_coverage_pct": 84.1,
-      "n_series": 8
+      "mape_pct": 8.01,
+      "mae_idr": 2150.0,
+      "rmse_idr": 2467.0,
+      "ci80_coverage_pct": 98.1,
+      "n_series": 38
     },
     "bawang_putih": {
-      "mape_pct": 16.8,
-      "mae_idr": 5169.0,
-      "rmse_idr": 6092.0,
-      "ci80_coverage_pct": 31.8,
-      "n_series": 8
-    },
-    "cabai_rawit": {
-      "mape_pct": 23.21,
-      "mae_idr": 14305.0,
-      "rmse_idr": 16256.0,
-      "ci80_coverage_pct": 97.7,
-      "n_series": 8
-    },
-    "daging_ayam": {
-      "mape_pct": 10.18,
-      "mae_idr": 3828.0,
-      "rmse_idr": 4071.0,
-      "ci80_coverage_pct": 61.9,
-      "n_series": 8
-    },
-    "telur_ayam": {
-      "mape_pct": 9.12,
-      "mae_idr": 2688.0,
-      "rmse_idr": 2865.0,
-      "ci80_coverage_pct": 100.0,
-      "n_series": 8
+      "mape_pct": 5.4,
+      "mae_idr": 1592.0,
+      "rmse_idr": 1833.0,
+      "ci80_coverage_pct": 98.9,
+      "n_series": 38
     },
     "beras_medium": {
-      "mape_pct": 4.84,
-      "mae_idr": 696.0,
-      "rmse_idr": 730.0,
-      "ci80_coverage_pct": 90.3,
-      "n_series": 15
+      "mape_pct": 3.34,
+      "mae_idr": 439.0,
+      "rmse_idr": 467.0,
+      "ci80_coverage_pct": 93.9,
+      "n_series": 38
     },
     "beras_premium": {
-      "mape_pct": 3.65,
-      "mae_idr": 568.0,
-      "rmse_idr": 582.0,
-      "ci80_coverage_pct": 80.6,
-      "n_series": 15
+      "mape_pct": 2.14,
+      "mae_idr": 329.0,
+      "rmse_idr": 370.0,
+      "ci80_coverage_pct": 93.9,
+      "n_series": 38
+    },
+    "cabai_rawit": {
+      "mape_pct": 29.54,
+      "mae_idr": 14740.0,
+      "rmse_idr": 15657.0,
+      "ci80_coverage_pct": 99.8,
+      "n_series": 38
+    },
+    "daging_ayam": {
+      "mape_pct": 14.54,
+      "mae_idr": 5589.0,
+      "rmse_idr": 5931.0,
+      "ci80_coverage_pct": 32.5,
+      "n_series": 38
+    },
+    "telur_ayam": {
+      "mape_pct": 9.64,
+      "mae_idr": 2269.0,
+      "rmse_idr": 2368.0,
+      "ci80_coverage_pct": 60.8,
+      "n_series": 38
     }
   },
   "detail": [
     {
       "commodity": "bawang_merah",
+      "city_id": "3501",
+      "n": 30,
+      "mape": 4.434947768281101,
+      "mae": 1166.6666666666667,
+      "rmse": 1449.137674618944,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_merah",
+      "city_id": "3502",
+      "n": 30,
+      "mape": 3.8818541812252505,
+      "mae": 1033.3333333333333,
+      "rmse": 1132.8430311977618,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_merah",
+      "city_id": "3503",
+      "n": 30,
+      "mape": 9.328063241106717,
+      "mae": 2133.3333333333335,
+      "rmse": 2190.8902300206646,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_merah",
+      "city_id": "3504",
+      "n": 30,
+      "mape": 7.090328213598654,
+      "mae": 1833.3333333333333,
+      "rmse": 1973.7865470545019,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_merah",
+      "city_id": "3505",
+      "n": 30,
+      "mape": 14.352584760431522,
+      "mae": 3333.3333333333335,
+      "rmse": 3716.5171868296266,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_merah",
+      "city_id": "3506",
+      "n": 30,
+      "mape": 8.493067426400762,
+      "mae": 2166.6666666666665,
+      "rmse": 2316.6067138525405,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_merah",
+      "city_id": "3507",
+      "n": 30,
+      "mape": 4.113849642421072,
+      "mae": 1083.3333333333333,
+      "rmse": 1357.0801990548189,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_merah",
+      "city_id": "3508",
+      "n": 30,
+      "mape": 8.213026819923371,
+      "mae": 2400.0,
+      "rmse": 3383.784863137726,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_merah",
       "city_id": "3509",
-      "file": "bawang_merah_cleaned.csv",
-      "n": 22,
-      "mape": 26.806311047705734,
-      "mae": 13550.0,
-      "rmse": 15171.556820696958,
-      "coverage_80": 50.0
+      "n": 30,
+      "mape": 5.476190476190476,
+      "mae": 1533.3333333333333,
+      "rmse": 1732.0508075688772,
+      "coverage_80": 100.0
     },
     {
       "commodity": "bawang_merah",
       "city_id": "3510",
-      "file": "bawang_merah_cleaned.csv",
-      "n": 22,
-      "mape": 19.973694373435762,
-      "mae": 9772.727272727272,
-      "rmse": 11000.77476610377,
-      "coverage_80": 77.27272727272727
-    },
-    {
-      "commodity": "bawang_merah",
-      "city_id": "3529",
-      "file": "bawang_merah_cleaned.csv",
-      "n": 22,
-      "mape": 14.587940841970983,
-      "mae": 7306.818181818182,
-      "rmse": 8624.588264217182,
+      "n": 30,
+      "mape": 8.655677655677659,
+      "mae": 2333.3333333333335,
+      "rmse": 2633.122354417533,
       "coverage_80": 100.0
     },
     {
       "commodity": "bawang_merah",
-      "city_id": "3571",
-      "file": "bawang_merah_cleaned.csv",
-      "n": 22,
-      "mape": 21.10180705446538,
-      "mae": 10329.545454545454,
-      "rmse": 11145.601456098357,
-      "coverage_80": 77.27272727272727
+      "city_id": "3511",
+      "n": 30,
+      "mape": 3.316017316017316,
+      "mae": 916.6666666666666,
+      "rmse": 1114.300976696452,
+      "coverage_80": 100.0
     },
     {
       "commodity": "bawang_merah",
-      "city_id": "3573",
-      "file": "bawang_merah_cleaned.csv",
-      "n": 22,
-      "mape": 17.78162149443207,
-      "mae": 9715.90909090909,
-      "rmse": 11065.019615477828,
-      "coverage_80": 95.45454545454545
+      "city_id": "3512",
+      "n": 30,
+      "mape": 12.678632478632482,
+      "mae": 3133.3333333333335,
+      "rmse": 3183.289703016886,
+      "coverage_80": 100.0
     },
     {
       "commodity": "bawang_merah",
-      "city_id": "3574",
-      "file": "bawang_merah_cleaned.csv",
-      "n": 22,
-      "mape": 18.613232397095384,
-      "mae": 9306.818181818182,
-      "rmse": 10373.562331935229,
-      "coverage_80": 95.45454545454545
+      "city_id": "3513",
+      "n": 30,
+      "mape": 5.8888888888888875,
+      "mae": 1700.0,
+      "rmse": 2313.0067012440754,
+      "coverage_80": 100.0
     },
     {
       "commodity": "bawang_merah",
-      "city_id": "3577",
-      "file": "bawang_merah_cleaned.csv",
-      "n": 22,
-      "mape": 19.56035507407502,
-      "mae": 10227.272727272728,
-      "rmse": 12690.592435486862,
-      "coverage_80": 77.27272727272727
+      "city_id": "3514",
+      "n": 30,
+      "mape": 4.573367459453579,
+      "mae": 1306.6666666666667,
+      "rmse": 1579.2403236999744,
+      "coverage_80": 100.0
     },
     {
       "commodity": "bawang_merah",
-      "city_id": "3578",
-      "file": "bawang_merah_cleaned.csv",
-      "n": 22,
-      "mape": 17.14994482416028,
-      "mae": 7943.181818181818,
-      "rmse": 8531.192765375778,
+      "city_id": "3515",
+      "n": 30,
+      "mape": 12.703295777146861,
+      "mae": 3255.0,
+      "rmse": 3711.390125905207,
       "coverage_80": 100.0
     },
     {
-      "commodity": "bawang_putih",
-      "city_id": "3509",
-      "file": "bawang_putih_cleaned.csv",
-      "n": 22,
-      "mape": 13.787500515980561,
-      "mae": 3980.681818181818,
-      "rmse": 4755.161669175928,
-      "coverage_80": 31.818181818181817
-    },
-    {
-      "commodity": "bawang_putih",
-      "city_id": "3510",
-      "file": "bawang_putih_cleaned.csv",
-      "n": 22,
-      "mape": 20.080335359703863,
-      "mae": 5977.272727272727,
-      "rmse": 6640.098575390963,
-      "coverage_80": 31.818181818181817
-    },
-    {
-      "commodity": "bawang_putih",
-      "city_id": "3529",
-      "file": "bawang_putih_cleaned.csv",
-      "n": 22,
-      "mape": 17.413769026672245,
-      "mae": 5409.090909090909,
-      "rmse": 6552.237646927817,
-      "coverage_80": 31.818181818181817
-    },
-    {
-      "commodity": "bawang_putih",
-      "city_id": "3571",
-      "file": "bawang_putih_cleaned.csv",
-      "n": 22,
-      "mape": 19.19123011060314,
-      "mae": 5738.636363636364,
-      "rmse": 6682.108064212834,
-      "coverage_80": 31.818181818181817
-    },
-    {
-      "commodity": "bawang_putih",
-      "city_id": "3573",
-      "file": "bawang_putih_cleaned.csv",
-      "n": 22,
-      "mape": 13.30578512396694,
-      "mae": 4340.909090909091,
-      "rmse": 5260.271337626467,
-      "coverage_80": 31.818181818181817
-    },
-    {
-      "commodity": "bawang_putih",
-      "city_id": "3574",
-      "file": "bawang_putih_cleaned.csv",
-      "n": 22,
-      "mape": 16.68807990000481,
-      "mae": 5056.818181818182,
-      "rmse": 6134.616754718482,
-      "coverage_80": 31.818181818181817
-    },
-    {
-      "commodity": "bawang_putih",
-      "city_id": "3577",
-      "file": "bawang_putih_cleaned.csv",
-      "n": 22,
-      "mape": 17.266361089890502,
-      "mae": 5147.727272727273,
-      "rmse": 6140.171377531294,
-      "coverage_80": 31.818181818181817
-    },
-    {
-      "commodity": "bawang_putih",
-      "city_id": "3578",
-      "file": "bawang_putih_cleaned.csv",
-      "n": 22,
-      "mape": 16.6569407778118,
-      "mae": 5704.545454545455,
-      "rmse": 6570.422706755978,
-      "coverage_80": 31.818181818181817
-    },
-    {
-      "commodity": "cabai_rawit",
-      "city_id": "3509",
-      "file": "cabe_rawit_cleaned.csv",
-      "n": 22,
-      "mape": 27.204144795991475,
-      "mae": 17125.0,
-      "rmse": 19257.457233261848,
-      "coverage_80": 90.9090909090909
-    },
-    {
-      "commodity": "cabai_rawit",
-      "city_id": "3510",
-      "file": "cabe_rawit_cleaned.csv",
-      "n": 22,
-      "mape": 28.947897297858642,
-      "mae": 18693.18181818182,
-      "rmse": 21228.531936566367,
-      "coverage_80": 90.9090909090909
-    },
-    {
-      "commodity": "cabai_rawit",
-      "city_id": "3529",
-      "file": "cabe_rawit_cleaned.csv",
-      "n": 22,
-      "mape": 24.88779136237249,
-      "mae": 15681.818181818182,
-      "rmse": 17443.089280180953,
+      "commodity": "bawang_merah",
+      "city_id": "3516",
+      "n": 30,
+      "mape": 5.569258659555586,
+      "mae": 1479.3333333333333,
+      "rmse": 1546.1258034196312,
       "coverage_80": 100.0
     },
     {
-      "commodity": "cabai_rawit",
-      "city_id": "3571",
-      "file": "cabe_rawit_cleaned.csv",
-      "n": 22,
-      "mape": 21.236147889707897,
-      "mae": 12863.636363636364,
-      "rmse": 14420.432158446696,
+      "commodity": "bawang_merah",
+      "city_id": "3517",
+      "n": 30,
+      "mape": 20.555555555555554,
+      "mae": 4700.0,
+      "rmse": 4832.183771339828,
       "coverage_80": 100.0
     },
     {
-      "commodity": "cabai_rawit",
-      "city_id": "3573",
-      "file": "cabe_rawit_cleaned.csv",
-      "n": 22,
-      "mape": 18.94652993465342,
-      "mae": 11500.0,
-      "rmse": 13059.305285713115,
+      "commodity": "bawang_merah",
+      "city_id": "3518",
+      "n": 30,
+      "mape": 5.469038208168642,
+      "mae": 1233.3333333333333,
+      "rmse": 1420.0938936093862,
       "coverage_80": 100.0
     },
     {
-      "commodity": "cabai_rawit",
-      "city_id": "3574",
-      "file": "cabe_rawit_cleaned.csv",
-      "n": 22,
-      "mape": 23.815828994317876,
-      "mae": 13431.818181818182,
-      "rmse": 15451.169417349496,
+      "commodity": "bawang_merah",
+      "city_id": "3519",
+      "n": 30,
+      "mape": 6.139690197475182,
+      "mae": 1521.6666666666667,
+      "rmse": 1918.0502252721815,
       "coverage_80": 100.0
     },
     {
-      "commodity": "cabai_rawit",
-      "city_id": "3577",
-      "file": "cabe_rawit_cleaned.csv",
-      "n": 22,
-      "mape": 19.254148644764264,
-      "mae": 12977.272727272728,
-      "rmse": 14779.823470467494,
+      "commodity": "bawang_merah",
+      "city_id": "3520",
+      "n": 30,
+      "mape": 9.555555555555559,
+      "mae": 2866.6666666666665,
+      "rmse": 2918.3328574147718,
       "coverage_80": 100.0
     },
     {
-      "commodity": "cabai_rawit",
-      "city_id": "3578",
-      "file": "cabe_rawit_cleaned.csv",
-      "n": 22,
-      "mape": 21.419814136945075,
-      "mae": 12170.454545454546,
-      "rmse": 14410.085641029973,
+      "commodity": "bawang_merah",
+      "city_id": "3521",
+      "n": 30,
+      "mape": 2.4542124542124544,
+      "mae": 666.6666666666666,
+      "rmse": 1366.2601021279465,
       "coverage_80": 100.0
     },
     {
-      "commodity": "daging_ayam",
-      "city_id": "3509",
-      "file": "daging_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 14.390888602381063,
-      "mae": 5272.727272727273,
-      "rmse": 5594.091850905171,
-      "coverage_80": 31.818181818181817
-    },
-    {
-      "commodity": "daging_ayam",
-      "city_id": "3510",
-      "file": "daging_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 13.972396629810014,
-      "mae": 5034.090909090909,
-      "rmse": 5377.50998477582,
-      "coverage_80": 31.818181818181817
-    },
-    {
-      "commodity": "daging_ayam",
-      "city_id": "3529",
-      "file": "daging_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 4.049043815426418,
-      "mae": 1681.8181818181818,
-      "rmse": 2067.0576365276497,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "daging_ayam",
-      "city_id": "3571",
-      "file": "daging_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 9.83560103130188,
-      "mae": 3579.5454545454545,
-      "rmse": 3748.105582096835,
-      "coverage_80": 50.0
-    },
-    {
-      "commodity": "daging_ayam",
-      "city_id": "3573",
-      "file": "daging_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 9.468817639884684,
-      "mae": 3579.5454545454545,
-      "rmse": 3718.427698027023,
-      "coverage_80": 31.818181818181817
-    },
-    {
-      "commodity": "daging_ayam",
-      "city_id": "3574",
-      "file": "daging_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 9.290852312026251,
-      "mae": 3704.5454545454545,
-      "rmse": 3792.936017963345,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "daging_ayam",
-      "city_id": "3577",
-      "file": "daging_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 10.725708620445463,
-      "mae": 4045.4545454545455,
-      "rmse": 4301.162633521313,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "daging_ayam",
-      "city_id": "3578",
-      "file": "daging_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 9.695666498952265,
-      "mae": 3727.2727272727275,
-      "rmse": 3966.478859827006,
-      "coverage_80": 50.0
-    },
-    {
-      "commodity": "telur_ayam",
-      "city_id": "3509",
-      "file": "telur_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 9.339847227280117,
-      "mae": 2686.3636363636365,
-      "rmse": 2858.87772004712,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "telur_ayam",
-      "city_id": "3510",
-      "file": "telur_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 8.122705522269886,
-      "mae": 2368.181818181818,
-      "rmse": 2603.4068588538503,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "telur_ayam",
-      "city_id": "3529",
-      "file": "telur_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 12.50048381521815,
-      "mae": 3829.5454545454545,
-      "rmse": 4000.355097874551,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "telur_ayam",
-      "city_id": "3571",
-      "file": "telur_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 8.064917878747666,
-      "mae": 2327.2727272727275,
-      "rmse": 2434.3190199538535,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "telur_ayam",
-      "city_id": "3573",
-      "file": "telur_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 9.542111971748142,
-      "mae": 2781.818181818182,
-      "rmse": 2850.1993550691086,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "telur_ayam",
-      "city_id": "3574",
-      "file": "telur_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 10.895156666794202,
-      "mae": 3234.090909090909,
-      "rmse": 3446.3254476194047,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "telur_ayam",
-      "city_id": "3577",
-      "file": "telur_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 8.203257948947606,
-      "mae": 2397.7272727272725,
-      "rmse": 2590.9589309400835,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "telur_ayam",
-      "city_id": "3578",
-      "file": "telur_ayam_cleaned.csv",
-      "n": 22,
-      "mape": 6.3098130308653,
-      "mae": 1879.5454545454545,
-      "rmse": 2134.3777036452993,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "beras_medium",
-      "city_id": "3509",
-      "file": "medium1_cleaned.csv",
-      "n": 22,
-      "mape": 4.126524619590876,
-      "mae": 609.0909090909091,
-      "rmse": 609.7689577357819,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "beras_medium",
-      "city_id": "3510",
-      "file": "medium1_cleaned.csv",
-      "n": 22,
-      "mape": 1.851851851851851,
-      "mae": 250.0,
-      "rmse": 250.0,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "beras_medium",
-      "city_id": "3529",
-      "file": "medium1_cleaned.csv",
-      "n": 22,
-      "mape": 5.160872345253212,
-      "mae": 713.6363636363636,
-      "rmse": 920.8444740859042,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "beras_medium",
-      "city_id": "3571",
-      "file": "medium1_cleaned.csv",
-      "n": 22,
-      "mape": 8.072100313479625,
-      "mae": 1170.4545454545455,
-      "rmse": 1176.2324291026528,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "beras_medium",
-      "city_id": "3573",
-      "file": "medium1_cleaned.csv",
-      "n": 22,
-      "mape": 2.1583581545676354,
-      "mae": 327.27272727272725,
-      "rmse": 332.68877074800434,
-      "coverage_80": 31.818181818181817
-    },
-    {
-      "commodity": "beras_medium",
-      "city_id": "3574",
-      "file": "medium1_cleaned.csv",
-      "n": 22,
-      "mape": 9.446254071661238,
+      "commodity": "bawang_merah",
+      "city_id": "3522",
+      "n": 30,
+      "mape": 5.613234384662957,
       "mae": 1450.0,
-      "rmse": 1450.0,
+      "rmse": 1894.069692487581,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_medium",
-      "city_id": "3577",
-      "file": "medium1_cleaned.csv",
-      "n": 22,
-      "mape": 6.720779220779219,
-      "mae": 940.9090909090909,
-      "rmse": 969.3015292185681,
+      "commodity": "bawang_merah",
+      "city_id": "3523",
+      "n": 30,
+      "mape": 6.779867046533715,
+      "mae": 1733.3333333333333,
+      "rmse": 2016.597794967223,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_medium",
-      "city_id": "3578",
-      "file": "medium1_cleaned.csv",
-      "n": 22,
-      "mape": 5.472613358178274,
-      "mae": 854.5454545454545,
-      "rmse": 859.9682869417073,
+      "commodity": "bawang_merah",
+      "city_id": "3524",
+      "n": 30,
+      "mape": 7.62696234583027,
+      "mae": 1900.0,
+      "rmse": 2040.2205763103166,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_medium",
-      "city_id": "3510",
-      "file": "medium2_cleaned.csv",
-      "n": 22,
-      "mape": 2.0408163265306127,
-      "mae": 250.0,
-      "rmse": 250.0,
+      "commodity": "bawang_merah",
+      "city_id": "3525",
+      "n": 30,
+      "mape": 0.47619047619047616,
+      "mae": 133.33333333333334,
+      "rmse": 516.3977794943223,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_medium",
+      "commodity": "bawang_merah",
+      "city_id": "3526",
+      "n": 30,
+      "mape": 10.634920634920636,
+      "mae": 3266.6666666666665,
+      "rmse": 3336.6650016645863,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_merah",
+      "city_id": "3527",
+      "n": 30,
+      "mape": 5.455213162770386,
+      "mae": 1550.0,
+      "rmse": 1822.3153770226859,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_merah",
+      "city_id": "3528",
+      "n": 30,
+      "mape": 7.7777777777777795,
+      "mae": 2333.3333333333335,
+      "rmse": 2415.22945769824,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_merah",
       "city_id": "3529",
-      "file": "medium2_cleaned.csv",
-      "n": 22,
-      "mape": 5.278138528138528,
-      "mae": 761.3636363636364,
-      "rmse": 991.7271435595212,
+      "n": 30,
+      "mape": 2.7453817733990147,
+      "mae": 800.0,
+      "rmse": 1183.2159566199232,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_medium",
+      "commodity": "bawang_merah",
       "city_id": "3571",
-      "file": "medium2_cleaned.csv",
-      "n": 22,
-      "mape": 5.384615384615386,
-      "mae": 700.0,
-      "rmse": 700.0,
+      "n": 30,
+      "mape": 7.612535612535614,
+      "mae": 2000.0,
+      "rmse": 2692.582403567252,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_medium",
+      "commodity": "bawang_merah",
+      "city_id": "3572",
+      "n": 30,
+      "mape": 5.995061728395063,
+      "mae": 1500.0,
+      "rmse": 2101.586702153082,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_merah",
       "city_id": "3573",
-      "file": "medium2_cleaned.csv",
-      "n": 22,
-      "mape": 2.072104443645945,
-      "mae": 309.09090909090907,
-      "rmse": 312.9769088200365,
+      "n": 30,
+      "mape": 6.843052109181142,
+      "mae": 2150.0,
+      "rmse": 2336.3076281460308,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_medium",
+      "commodity": "bawang_merah",
       "city_id": "3574",
-      "file": "medium2_cleaned.csv",
-      "n": 22,
-      "mape": 4.195804195804197,
-      "mae": 600.0,
-      "rmse": 600.0,
+      "n": 30,
+      "mape": 3.4201388888888893,
+      "mae": 1033.3333333333333,
+      "rmse": 1488.8474289418195,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_medium",
+      "commodity": "bawang_merah",
+      "city_id": "3575",
+      "n": 30,
+      "mape": 31.482333448697002,
+      "mae": 8781.666666666666,
+      "rmse": 9333.722462126245,
+      "coverage_80": 26.666666666666668
+    },
+    {
+      "commodity": "bawang_merah",
+      "city_id": "3576",
+      "n": 30,
+      "mape": 14.34024876822475,
+      "mae": 3791.6666666666665,
+      "rmse": 4075.0766863949934,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_merah",
       "city_id": "3577",
-      "file": "medium2_cleaned.csv",
-      "n": 22,
-      "mape": 9.41558441558442,
-      "mae": 1318.1818181818182,
-      "rmse": 1319.0044455090845,
+      "n": 30,
+      "mape": 5.057471264367816,
+      "mae": 1533.3333333333333,
+      "rmse": 2033.060090930254,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_merah",
+      "city_id": "3578",
+      "n": 30,
+      "mape": 14.865199955643089,
+      "mae": 4433.333333333333,
+      "rmse": 4736.383993441973,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_merah",
+      "city_id": "3579",
+      "n": 30,
+      "mape": 4.684999149168627,
+      "mae": 1500.0,
+      "rmse": 1919.2012227313044,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3501",
+      "n": 30,
+      "mape": 5.557780249660116,
+      "mae": 1666.6666666666667,
+      "rmse": 1825.7418583505537,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3502",
+      "n": 30,
+      "mape": 3.452380952380952,
+      "mae": 966.6666666666666,
+      "rmse": 1103.0261405182864,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3503",
+      "n": 30,
+      "mape": 4.756185276707798,
+      "mae": 1350.0,
+      "rmse": 1742.8425057933375,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3504",
+      "n": 30,
+      "mape": 6.018062397372741,
+      "mae": 1700.0,
+      "rmse": 1870.8286933869706,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3505",
+      "n": 30,
+      "mape": 6.4118353437896225,
+      "mae": 1883.3333333333333,
+      "rmse": 1981.161275615895,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3506",
+      "n": 30,
+      "mape": 2.3522167487684724,
+      "mae": 666.6666666666666,
+      "rmse": 1118.033988749895,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3507",
+      "n": 30,
+      "mape": 4.1871921182266005,
+      "mae": 1200.0,
+      "rmse": 1414.213562373095,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3508",
+      "n": 30,
+      "mape": 6.767676767676768,
+      "mae": 2033.3333333333333,
+      "rmse": 2057.5065816014617,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3509",
+      "n": 30,
+      "mape": 0.7142857142857143,
+      "mae": 200.0,
+      "rmse": 774.5966692414834,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3510",
+      "n": 30,
+      "mape": 0.4444444444444444,
+      "mae": 133.33333333333334,
+      "rmse": 516.3977794943223,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3511",
+      "n": 30,
+      "mape": 3.2479826460089614,
+      "mae": 908.3333333333334,
+      "rmse": 1270.2525995512337,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3512",
+      "n": 30,
+      "mape": 9.892857142857142,
+      "mae": 2866.6666666666665,
+      "rmse": 3326.6599866332394,
+      "coverage_80": 70.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3513",
+      "n": 30,
+      "mape": 13.873015873015873,
+      "mae": 4133.333333333333,
+      "rmse": 4163.331998932265,
+      "coverage_80": 93.33333333333333
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3514",
+      "n": 30,
+      "mape": 6.4460447186794685,
+      "mae": 1880.0,
+      "rmse": 1990.47732968753,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3515",
+      "n": 30,
+      "mape": 10.165308829034304,
+      "mae": 3148.3333333333335,
+      "rmse": 3343.0151061579127,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3516",
+      "n": 30,
+      "mape": 11.070243882938996,
+      "mae": 3087.5,
+      "rmse": 3172.947236666041,
+      "coverage_80": 93.33333333333333
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3517",
+      "n": 30,
+      "mape": 3.3618233618233613,
+      "mae": 900.0,
+      "rmse": 1602.081978759722,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3518",
+      "n": 30,
+      "mape": 3.499361430395912,
+      "mae": 1000.0,
+      "rmse": 1183.2159566199232,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3519",
+      "n": 30,
+      "mape": 3.3854281654041847,
+      "mae": 935.0,
+      "rmse": 1314.5499863704943,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3520",
+      "n": 30,
+      "mape": 0.5555555555555555,
+      "mae": 166.66666666666666,
+      "rmse": 645.4972243679028,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3521",
+      "n": 30,
+      "mape": 2.805145046524357,
+      "mae": 800.0,
+      "rmse": 1258.3057392117917,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3522",
+      "n": 30,
+      "mape": 2.7394636015325666,
+      "mae": 800.0,
+      "rmse": 1024.6950765959598,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3523",
+      "n": 30,
+      "mape": 1.5248248615184097,
+      "mae": 500.0,
+      "rmse": 695.221787153807,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3524",
+      "n": 30,
+      "mape": 3.6863711001642026,
+      "mae": 1050.0,
+      "rmse": 1506.9284433354271,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3525",
+      "n": 30,
+      "mape": 12.506448412698411,
+      "mae": 3766.6666666666665,
+      "rmse": 3849.2423496925558,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3526",
+      "n": 30,
+      "mape": 6.145833333333333,
+      "mae": 1966.6666666666667,
+      "rmse": 1970.617500514327,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3527",
+      "n": 30,
+      "mape": 19.373480874016415,
+      "mae": 5683.333333333333,
+      "rmse": 5756.518044790618,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3528",
+      "n": 30,
+      "mape": 0.2564102564102564,
+      "mae": 83.33333333333333,
+      "rmse": 322.7486121839514,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3529",
+      "n": 30,
+      "mape": 2.5638028443405414,
+      "mae": 750.0,
+      "rmse": 1170.825919312232,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3571",
+      "n": 30,
+      "mape": 10.383597883597883,
+      "mae": 2933.3333333333335,
+      "rmse": 3324.1540277189324,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3572",
+      "n": 30,
+      "mape": 4.4896004378763,
+      "mae": 1333.3333333333333,
+      "rmse": 1477.6106839534334,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3573",
+      "n": 30,
+      "mape": 3.9879405548033255,
+      "mae": 1250.0,
+      "rmse": 1434.6892811104894,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3574",
+      "n": 30,
+      "mape": 3.6031746031746033,
+      "mae": 1066.6666666666667,
+      "rmse": 1095.4451150103323,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3575",
+      "n": 30,
+      "mape": 8.534534534534536,
+      "mae": 2368.3333333333335,
+      "rmse": 2409.3654074603683,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3576",
+      "n": 30,
+      "mape": 2.6469017094017095,
+      "mae": 800.0,
+      "rmse": 1070.436048222094,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3577",
+      "n": 30,
+      "mape": 7.746031746031745,
+      "mae": 2433.3333333333335,
+      "rmse": 2509.980079602227,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3578",
+      "n": 30,
+      "mape": 3.2185934349779446,
+      "mae": 1066.6666666666667,
+      "rmse": 1276.3881332363862,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "bawang_putih",
+      "city_id": "3579",
+      "n": 30,
+      "mape": 2.9215686274509807,
+      "mae": 1016.6666666666666,
+      "rmse": 1097.345281425435,
       "coverage_80": 100.0
     },
     {
       "commodity": "beras_medium",
-      "city_id": "3578",
-      "file": "medium2_cleaned.csv",
-      "n": 22,
-      "mape": 1.227272727272727,
-      "mae": 184.0909090909091,
-      "rmse": 211.3269762928787,
-      "coverage_80": 22.727272727272727
+      "city_id": "3501",
+      "n": 30,
+      "mape": 0.8352758352758354,
+      "mae": 110.0,
+      "rmse": 151.10702608857517,
+      "coverage_80": 100.0
     },
     {
-      "commodity": "beras_premium",
+      "commodity": "beras_medium",
+      "city_id": "3502",
+      "n": 30,
+      "mape": 5.711538461538462,
+      "mae": 742.5,
+      "rmse": 743.0301137908207,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3503",
+      "n": 30,
+      "mape": 0.3017241379310345,
+      "mae": 35.0,
+      "rmse": 135.5544171172596,
+      "coverage_80": 93.33333333333333
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3504",
+      "n": 30,
+      "mape": 0.38461538461538464,
+      "mae": 50.0,
+      "rmse": 193.64916731037084,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3505",
+      "n": 30,
+      "mape": 0.04666666666666667,
+      "mae": 5.833333333333333,
+      "rmse": 22.5924028528766,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3506",
+      "n": 30,
+      "mape": 3.82716049382716,
+      "mae": 516.6666666666666,
+      "rmse": 520.4164998665332,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3507",
+      "n": 30,
+      "mape": 3.974358974358975,
+      "mae": 516.6666666666666,
+      "rmse": 520.4164998665332,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3508",
+      "n": 30,
+      "mape": 2.5641025641025648,
+      "mae": 300.0,
+      "rmse": 300.0,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
       "city_id": "3509",
-      "file": "super1_cleaned.csv",
-      "n": 22,
-      "mape": 0.2776614066936648,
-      "mae": 43.18181818181818,
-      "rmse": 77.60623217710851,
-      "coverage_80": 77.27272727272727
+      "n": 30,
+      "mape": 4.166666666666668,
+      "mae": 500.0,
+      "rmse": 500.0,
+      "coverage_80": 0.0
     },
     {
-      "commodity": "beras_premium",
+      "commodity": "beras_medium",
       "city_id": "3510",
-      "file": "super1_cleaned.csv",
-      "n": 22,
-      "mape": 3.2258064516129026,
+      "n": 30,
+      "mape": 4.000000000000001,
       "mae": 500.0,
       "rmse": 500.0,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_premium",
-      "city_id": "3529",
-      "file": "super1_cleaned.csv",
-      "n": 22,
-      "mape": 2.086483048684155,
-      "mae": 320.45454545454544,
-      "rmse": 367.57806839314605,
-      "coverage_80": 77.27272727272727
-    },
-    {
-      "commodity": "beras_premium",
-      "city_id": "3571",
-      "file": "super1_cleaned.csv",
-      "n": 22,
-      "mape": 5.106355877832466,
-      "mae": 775.0,
-      "rmse": 776.1355317445295,
+      "commodity": "beras_medium",
+      "city_id": "3511",
+      "n": 30,
+      "mape": 1.6543209876543212,
+      "mae": 223.33333333333334,
+      "rmse": 239.79157616563597,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_premium",
-      "city_id": "3573",
-      "file": "super1_cleaned.csv",
-      "n": 22,
-      "mape": 1.7984033371691597,
-      "mae": 286.3636363636364,
-      "rmse": 297.7185980693239,
-      "coverage_80": 31.818181818181817
-    },
-    {
-      "commodity": "beras_premium",
-      "city_id": "3574",
-      "file": "super1_cleaned.csv",
-      "n": 22,
-      "mape": 9.375,
-      "mae": 1500.0,
-      "rmse": 1500.0,
+      "commodity": "beras_medium",
+      "city_id": "3512",
+      "n": 30,
+      "mape": 3.928571428571428,
+      "mae": 550.0,
+      "rmse": 580.9475019311126,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_premium",
-      "city_id": "3577",
-      "file": "super1_cleaned.csv",
-      "n": 22,
+      "commodity": "beras_medium",
+      "city_id": "3513",
+      "n": 30,
+      "mape": 7.435897435897436,
+      "mae": 966.6666666666666,
+      "rmse": 974.6794344808964,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3514",
+      "n": 30,
+      "mape": 2.6021756021756017,
+      "mae": 343.3333333333333,
+      "rmse": 348.09002666934697,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3515",
+      "n": 30,
+      "mape": 0.5679012345679012,
+      "mae": 76.66666666666667,
+      "rmse": 176.8945071692919,
+      "coverage_80": 76.66666666666667
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3516",
+      "n": 30,
+      "mape": 0.6545454545454545,
+      "mae": 90.0,
+      "rmse": 348.5685011586675,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3517",
+      "n": 30,
+      "mape": 3.908045977011495,
+      "mae": 566.6666666666666,
+      "rmse": 785.2812659593164,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3518",
+      "n": 30,
       "mape": 0.0,
       "mae": 0.0,
       "rmse": 0.0,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_premium",
-      "city_id": "3578",
-      "file": "super1_cleaned.csv",
-      "n": 22,
-      "mape": 3.0487804878048785,
-      "mae": 500.0,
-      "rmse": 500.0,
+      "commodity": "beras_medium",
+      "city_id": "3519",
+      "n": 30,
+      "mape": 0.8846153846153846,
+      "mae": 115.0,
+      "rmse": 127.96483892069728,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_premium",
-      "city_id": "3510",
-      "file": "super2_cleaned.csv",
-      "n": 22,
-      "mape": 3.3333333333333335,
-      "mae": 500.0,
-      "rmse": 500.0,
+      "commodity": "beras_medium",
+      "city_id": "3520",
+      "n": 30,
+      "mape": 3.7777777777777763,
+      "mae": 510.0,
+      "rmse": 511.3707070218238,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_premium",
-      "city_id": "3529",
-      "file": "super2_cleaned.csv",
-      "n": 22,
-      "mape": 3.502476620413912,
-      "mae": 536.3636363636364,
-      "rmse": 630.1154295408537,
+      "commodity": "beras_medium",
+      "city_id": "3521",
+      "n": 30,
+      "mape": 1.6533333333333338,
+      "mae": 206.66666666666666,
+      "rmse": 208.16659994661327,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_premium",
-      "city_id": "3571",
-      "file": "super2_cleaned.csv",
-      "n": 22,
-      "mape": 5.174544937603005,
-      "mae": 775.0,
-      "rmse": 776.1355317445295,
+      "commodity": "beras_medium",
+      "city_id": "3522",
+      "n": 30,
+      "mape": 1.9753086419753079,
+      "mae": 266.6666666666667,
+      "rmse": 273.8612787525831,
       "coverage_80": 100.0
     },
     {
-      "commodity": "beras_premium",
-      "city_id": "3573",
-      "file": "super2_cleaned.csv",
-      "n": 22,
-      "mape": 1.1146148845829356,
-      "mae": 175.0,
-      "rmse": 178.05770259818993,
-      "coverage_80": 0.0
-    },
-    {
-      "commodity": "beras_premium",
-      "city_id": "3574",
-      "file": "super2_cleaned.csv",
-      "n": 22,
-      "mape": 9.677419354838706,
-      "mae": 1500.0,
-      "rmse": 1500.0,
-      "coverage_80": 100.0
-    },
-    {
-      "commodity": "beras_premium",
-      "city_id": "3577",
-      "file": "super2_cleaned.csv",
-      "n": 22,
-      "mape": 6.25,
+      "commodity": "beras_medium",
+      "city_id": "3523",
+      "n": 30,
+      "mape": 7.407407407407404,
       "mae": 1000.0,
       "rmse": 1000.0,
       "coverage_80": 100.0
     },
     {
+      "commodity": "beras_medium",
+      "city_id": "3524",
+      "n": 30,
+      "mape": 6.730769230769231,
+      "mae": 875.0,
+      "rmse": 875.0,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3525",
+      "n": 30,
+      "mape": 0.0,
+      "mae": 0.0,
+      "rmse": 0.0,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3526",
+      "n": 30,
+      "mape": 7.123655913978494,
+      "mae": 883.3333333333334,
+      "rmse": 885.5318552523487,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3527",
+      "n": 30,
+      "mape": 6.676736529238565,
+      "mae": 860.0,
+      "rmse": 864.5808232895291,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3528",
+      "n": 30,
+      "mape": 3.4187124963453197,
+      "mae": 446.6666666666667,
+      "rmse": 470.6378650300037,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3529",
+      "n": 30,
+      "mape": 5.303030303030302,
+      "mae": 700.0,
+      "rmse": 700.0,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3571",
+      "n": 30,
+      "mape": 6.300124501878888,
+      "mae": 843.3333333333334,
+      "rmse": 865.4478609367522,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3572",
+      "n": 30,
+      "mape": 8.148148148148149,
+      "mae": 1100.0,
+      "rmse": 1100.0,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3573",
+      "n": 30,
+      "mape": 0.026246719160104987,
+      "mae": 3.3333333333333335,
+      "rmse": 12.909944487358056,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3574",
+      "n": 30,
+      "mape": 4.000000000000001,
+      "mae": 500.0,
+      "rmse": 500.0,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3575",
+      "n": 30,
+      "mape": 2.4561403508771917,
+      "mae": 326.6666666666667,
+      "rmse": 341.56502553198663,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3576",
+      "n": 30,
+      "mape": 2.490421455938697,
+      "mae": 325.0,
+      "rmse": 338.19373146171705,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3577",
+      "n": 30,
+      "mape": 3.69047619047619,
+      "mae": 516.6666666666666,
+      "rmse": 520.4164998665332,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3578",
+      "n": 30,
+      "mape": 2.0408163265306127,
+      "mae": 250.0,
+      "rmse": 250.0,
+      "coverage_80": 0.0
+    },
+    {
+      "commodity": "beras_medium",
+      "city_id": "3579",
+      "n": 30,
+      "mape": 6.365693851497288,
+      "mae": 851.6666666666666,
+      "rmse": 858.0501150865257,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3501",
+      "n": 30,
+      "mape": 0.22988505747126436,
+      "mae": 33.333333333333336,
+      "rmse": 129.09944487358058,
+      "coverage_80": 93.33333333333333
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3502",
+      "n": 30,
+      "mape": 8.523489932885905,
+      "mae": 1270.0,
+      "rmse": 1274.9509794497983,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3503",
+      "n": 30,
+      "mape": 0.7516641065028163,
+      "mae": 105.0,
+      "rmse": 111.24297730643494,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3504",
+      "n": 30,
+      "mape": 0.5022333954344459,
+      "mae": 75.0,
+      "rmse": 102.06207261596575,
+      "coverage_80": 93.33333333333333
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3505",
+      "n": 30,
+      "mape": 2.7181208053691273,
+      "mae": 405.0,
+      "rmse": 405.4318685056714,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3506",
+      "n": 30,
+      "mape": 0.06940563392176295,
+      "mae": 10.266666666666667,
+      "rmse": 54.79172686942193,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3507",
+      "n": 30,
+      "mape": 0.06711409395973154,
+      "mae": 10.0,
+      "rmse": 38.72983346207417,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3508",
+      "n": 30,
+      "mape": 3.6357526881720426,
+      "mae": 566.6666666666666,
+      "rmse": 619.1391873668903,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3509",
+      "n": 30,
+      "mape": 4.653409090909091,
+      "mae": 760.0,
+      "rmse": 804.0522371090077,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3510",
+      "n": 30,
+      "mape": 0.06711409395973154,
+      "mae": 10.0,
+      "rmse": 38.72983346207417,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3511",
+      "n": 30,
+      "mape": 1.8079096045197744,
+      "mae": 266.6666666666667,
+      "rmse": 273.8612787525831,
+      "coverage_80": 0.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3512",
+      "n": 30,
+      "mape": 6.802983539094649,
+      "mae": 1093.3333333333333,
+      "rmse": 1108.4523745595327,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3513",
+      "n": 30,
+      "mape": 0.13513513513513514,
+      "mae": 20.0,
+      "rmse": 77.45966692414834,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3514",
+      "n": 30,
+      "mape": 1.471264367816092,
+      "mae": 213.33333333333334,
+      "rmse": 242.21202832779932,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3515",
+      "n": 30,
+      "mape": 0.10725385725385726,
+      "mae": 16.666666666666668,
+      "rmse": 69.5221787153807,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3516",
+      "n": 30,
+      "mape": 0.4080459770114942,
+      "mae": 59.166666666666664,
+      "rmse": 229.1515146506055,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3517",
+      "n": 30,
+      "mape": 2.0096638083571525,
+      "mae": 313.3333333333333,
+      "rmse": 450.7401320790802,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3518",
+      "n": 30,
+      "mape": 3.4408602150537626,
+      "mae": 533.3333333333334,
+      "rmse": 547.7225575051662,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3519",
+      "n": 30,
+      "mape": 2.595865164622307,
+      "mae": 391.6666666666667,
+      "rmse": 417.58232721225164,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3520",
+      "n": 30,
+      "mape": 0.6711409395973152,
+      "mae": 100.0,
+      "rmse": 100.0,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3521",
+      "n": 30,
+      "mape": 0.1789709172259508,
+      "mae": 26.666666666666668,
+      "rmse": 103.27955589886444,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3522",
+      "n": 30,
+      "mape": 0.8948545861297538,
+      "mae": 133.33333333333334,
+      "rmse": 182.57418583505537,
+      "coverage_80": 93.33333333333333
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3523",
+      "n": 30,
+      "mape": 6.466666666666667,
+      "mae": 970.0,
+      "rmse": 976.4732459212593,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3524",
+      "n": 30,
+      "mape": 0.7270693512304249,
+      "mae": 108.33333333333333,
+      "rmse": 112.73124382057236,
+      "coverage_80": 93.33333333333333
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3525",
+      "n": 30,
+      "mape": 0.19736842105263158,
+      "mae": 30.0,
+      "rmse": 116.1895003862225,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3526",
+      "n": 30,
+      "mape": 5.292792792792791,
+      "mae": 783.3333333333334,
+      "rmse": 785.8116822750856,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3527",
+      "n": 30,
+      "mape": 0.16778523489932887,
+      "mae": 25.0,
+      "rmse": 96.82458365518542,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3528",
+      "n": 30,
+      "mape": 0.06711409395973154,
+      "mae": 10.0,
+      "rmse": 31.622776601683793,
+      "coverage_80": 93.33333333333333
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3529",
+      "n": 30,
+      "mape": 4.509169363538295,
+      "mae": 696.6666666666666,
+      "rmse": 696.7783004657938,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3571",
+      "n": 30,
+      "mape": 2.27871876229012,
+      "mae": 350.0,
+      "rmse": 369.90989893936785,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3572",
+      "n": 30,
+      "mape": 2.0134228187919456,
+      "mae": 300.0,
+      "rmse": 300.0,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3573",
+      "n": 30,
+      "mape": 1.1796264164685217,
+      "mae": 183.33333333333334,
+      "rmse": 301.8691769624716,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3574",
+      "n": 30,
+      "mape": 2.959619341563786,
+      "mae": 478.3333333333333,
+      "rmse": 512.2255362630801,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3575",
+      "n": 30,
+      "mape": 0.2494331065759637,
+      "mae": 36.666666666666664,
+      "rmse": 142.00938936093863,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3576",
+      "n": 30,
+      "mape": 0.29082774049217003,
+      "mae": 43.333333333333336,
+      "rmse": 167.82927833565475,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3577",
+      "n": 30,
+      "mape": 3.3333333333333335,
+      "mae": 500.0,
+      "rmse": 500.0,
+      "coverage_80": 0.0
+    },
+    {
       "commodity": "beras_premium",
       "city_id": "3578",
-      "file": "super2_cleaned.csv",
-      "n": 22,
-      "mape": 0.7359307359307358,
-      "mae": 115.9090909090909,
-      "rmse": 131.85736094872988,
-      "coverage_80": 22.727272727272727
+      "n": 30,
+      "mape": 3.0192865676736638,
+      "mae": 475.0,
+      "rmse": 484.12291827592713,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "beras_premium",
+      "city_id": "3579",
+      "n": 30,
+      "mape": 6.878472222222222,
+      "mae": 1089.1666666666667,
+      "rmse": 1094.1939575169781,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3501",
+      "n": 30,
+      "mape": 32.269813519813525,
+      "mae": 14866.666666666666,
+      "rmse": 15769.168230019828,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3502",
+      "n": 30,
+      "mape": 22.234893755746008,
+      "mae": 11183.333333333334,
+      "rmse": 12505.665382804174,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3503",
+      "n": 30,
+      "mape": 36.53622647288936,
+      "mae": 17250.0,
+      "rmse": 17979.154596365202,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3504",
+      "n": 30,
+      "mape": 36.85863826934041,
+      "mae": 18033.333333333332,
+      "rmse": 18710.959355415212,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3505",
+      "n": 30,
+      "mape": 29.42706766026056,
+      "mae": 13366.666666666666,
+      "rmse": 13939.751312941944,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3506",
+      "n": 30,
+      "mape": 33.670337782521706,
+      "mae": 16700.0,
+      "rmse": 17342.625714310583,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3507",
+      "n": 30,
+      "mape": 34.082687780056204,
+      "mae": 15783.333333333334,
+      "rmse": 16186.156636665379,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3508",
+      "n": 30,
+      "mape": 25.012249188719775,
+      "mae": 13766.666666666666,
+      "rmse": 14882.876066137216,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3509",
+      "n": 30,
+      "mape": 36.067971140784735,
+      "mae": 18300.0,
+      "rmse": 18773.207859429174,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3510",
+      "n": 30,
+      "mape": 35.1566413488894,
+      "mae": 17833.333333333332,
+      "rmse": 18652.077632263918,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3511",
+      "n": 30,
+      "mape": 22.530564052113768,
+      "mae": 10850.0,
+      "rmse": 11660.117209245083,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3512",
+      "n": 30,
+      "mape": 31.580182780182774,
+      "mae": 14900.0,
+      "rmse": 15572.411502397437,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3513",
+      "n": 30,
+      "mape": 32.46290746290746,
+      "mae": 16933.333333333332,
+      "rmse": 17599.24240793715,
+      "coverage_80": 93.33333333333333
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3514",
+      "n": 30,
+      "mape": 24.474682504830533,
+      "mae": 11543.333333333334,
+      "rmse": 12192.30631723684,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3515",
+      "n": 30,
+      "mape": 36.8972564628507,
+      "mae": 18505.0,
+      "rmse": 18959.722659715604,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3516",
+      "n": 30,
+      "mape": 14.721854859557448,
+      "mae": 7349.666666666667,
+      "rmse": 9038.571697637482,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3517",
+      "n": 30,
+      "mape": 36.04483383793729,
+      "mae": 17300.0,
+      "rmse": 17857.77141750896,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3518",
+      "n": 30,
+      "mape": 37.720102261674555,
+      "mae": 19033.333333333332,
+      "rmse": 20234.459057096963,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3519",
+      "n": 30,
+      "mape": 38.4754779245493,
+      "mae": 19336.666666666668,
+      "rmse": 19934.501080622344,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3520",
+      "n": 30,
+      "mape": 30.351841069255748,
+      "mae": 15300.0,
+      "rmse": 16015.617378046967,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3521",
+      "n": 30,
+      "mape": 33.529526029526025,
+      "mae": 18100.0,
+      "rmse": 18628.83070225647,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3522",
+      "n": 30,
+      "mape": 20.699390384172997,
+      "mae": 11500.0,
+      "rmse": 13102.162671355698,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3523",
+      "n": 30,
+      "mape": 29.547949694951992,
+      "mae": 15033.333333333334,
+      "rmse": 15852.444606432158,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3524",
+      "n": 30,
+      "mape": 24.158313976753394,
+      "mae": 12783.333333333334,
+      "rmse": 13620.144394731406,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3525",
+      "n": 30,
+      "mape": 30.60234984419766,
+      "mae": 15866.666666666666,
+      "rmse": 16607.227342335023,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3526",
+      "n": 30,
+      "mape": 19.26786529577228,
+      "mae": 8833.333333333334,
+      "rmse": 10150.533647711993,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3527",
+      "n": 30,
+      "mape": 19.708100697111046,
+      "mae": 8883.333333333334,
+      "rmse": 10796.990321381232,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3528",
+      "n": 30,
+      "mape": 18.097424472863068,
+      "mae": 11000.0,
+      "rmse": 15542.281042369554,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3529",
+      "n": 30,
+      "mape": 35.60610728343869,
+      "mae": 15866.666666666666,
+      "rmse": 16550.805619868377,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3571",
+      "n": 30,
+      "mape": 34.74541000623109,
+      "mae": 17666.666666666668,
+      "rmse": 18415.57311987149,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3572",
+      "n": 30,
+      "mape": 37.394979416718535,
+      "mae": 18333.333333333332,
+      "rmse": 18959.606184377004,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3573",
+      "n": 30,
+      "mape": 19.820509440628115,
+      "mae": 9266.666666666666,
+      "rmse": 10202.123961868594,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3574",
+      "n": 30,
+      "mape": 37.45735129068462,
+      "mae": 20933.333333333332,
+      "rmse": 21214.774725805284,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3575",
+      "n": 30,
+      "mape": 27.670326340326334,
+      "mae": 14105.0,
+      "rmse": 14461.721024829652,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3576",
+      "n": 30,
+      "mape": 29.42897086381755,
+      "mae": 14933.333333333334,
+      "rmse": 15735.840195765419,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3577",
+      "n": 30,
+      "mape": 22.474747474747474,
+      "mae": 11566.666666666666,
+      "rmse": 12461.942063739503,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3578",
+      "n": 30,
+      "mape": 34.52212668400859,
+      "mae": 17550.0,
+      "rmse": 18675.964946065484,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "cabai_rawit",
+      "city_id": "3579",
+      "n": 30,
+      "mape": 21.095069021321564,
+      "mae": 9766.666666666666,
+      "rmse": 10185.978925300537,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3501",
+      "n": 30,
+      "mape": 9.486986986986986,
+      "mae": 3733.3333333333335,
+      "rmse": 4049.6913462633174,
+      "coverage_80": 40.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3502",
+      "n": 30,
+      "mape": 13.436777765135973,
+      "mae": 5066.666666666667,
+      "rmse": 5386.712046013474,
+      "coverage_80": 13.333333333333334
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3503",
+      "n": 30,
+      "mape": 14.191039143789972,
+      "mae": 5200.0,
+      "rmse": 5392.896562454479,
+      "coverage_80": 40.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3504",
+      "n": 30,
+      "mape": 20.38563185221213,
+      "mae": 7846.666666666667,
+      "rmse": 8152.208289782591,
+      "coverage_80": 6.666666666666667
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3505",
+      "n": 30,
+      "mape": 21.026292005654636,
+      "mae": 7866.666666666667,
+      "rmse": 8158.58443604036,
+      "coverage_80": 13.333333333333334
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3506",
+      "n": 30,
+      "mape": 17.440605304382395,
+      "mae": 6466.666666666667,
+      "rmse": 6756.478372643547,
+      "coverage_80": 33.33333333333333
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3507",
+      "n": 30,
+      "mape": 16.84265645565955,
+      "mae": 6166.666666666667,
+      "rmse": 6358.721045409473,
+      "coverage_80": 20.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3508",
+      "n": 30,
+      "mape": 15.418492755954055,
+      "mae": 5733.333333333333,
+      "rmse": 6491.019437140312,
+      "coverage_80": 66.66666666666666
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3509",
+      "n": 30,
+      "mape": 22.383811464306827,
+      "mae": 8533.333333333334,
+      "rmse": 8811.923740024082,
+      "coverage_80": 0.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3510",
+      "n": 30,
+      "mape": 24.14781770935022,
+      "mae": 9133.333333333334,
+      "rmse": 9447.221813845592,
+      "coverage_80": 0.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3511",
+      "n": 30,
+      "mape": 17.825496892380492,
+      "mae": 6691.666666666667,
+      "rmse": 7114.6123108243455,
+      "coverage_80": 30.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3512",
+      "n": 30,
+      "mape": 20.720637377758123,
+      "mae": 7733.333333333333,
+      "rmse": 8007.288346666845,
+      "coverage_80": 0.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3513",
+      "n": 30,
+      "mape": 19.44916846561771,
+      "mae": 8066.666666666667,
+      "rmse": 8278.48617401354,
+      "coverage_80": 26.666666666666668
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3514",
+      "n": 30,
+      "mape": 7.927927927927929,
+      "mae": 2933.3333333333335,
+      "rmse": 2943.920288775949,
+      "coverage_80": 6.666666666666667
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3515",
+      "n": 30,
+      "mape": 14.79515386948091,
+      "mae": 5918.333333333333,
+      "rmse": 6184.045331873519,
+      "coverage_80": 20.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3516",
+      "n": 30,
+      "mape": 4.607997277005178,
+      "mae": 1566.6666666666667,
+      "rmse": 1760.6816861659008,
+      "coverage_80": 93.33333333333333
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3517",
+      "n": 30,
+      "mape": 20.37351261035472,
+      "mae": 7833.333333333333,
+      "rmse": 8149.642118931767,
+      "coverage_80": 0.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3518",
+      "n": 30,
+      "mape": 16.142332945776282,
+      "mae": 6333.333333333333,
+      "rmse": 6821.534529219458,
+      "coverage_80": 26.666666666666668
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3519",
+      "n": 30,
+      "mape": 17.751110141343716,
+      "mae": 6551.666666666667,
+      "rmse": 6729.518308665685,
+      "coverage_80": 16.666666666666664
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3520",
+      "n": 30,
+      "mape": 18.01178353809933,
+      "mae": 6733.333333333333,
+      "rmse": 7066.352194260723,
+      "coverage_80": 10.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3521",
+      "n": 30,
+      "mape": 16.246031746031743,
+      "mae": 6566.666666666667,
+      "rmse": 6986.892489989142,
+      "coverage_80": 26.666666666666668
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3522",
+      "n": 30,
+      "mape": 13.749791501455594,
+      "mae": 5283.333333333333,
+      "rmse": 5609.8871052217555,
+      "coverage_80": 40.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3523",
+      "n": 30,
+      "mape": 6.845187292555716,
+      "mae": 2700.0,
+      "rmse": 3114.4823004794875,
+      "coverage_80": 50.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3524",
+      "n": 30,
+      "mape": 9.866696656170342,
+      "mae": 3866.6666666666665,
+      "rmse": 4000.0,
+      "coverage_80": 73.33333333333333
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3525",
+      "n": 30,
+      "mape": 11.227279911490436,
+      "mae": 4533.333333333333,
+      "rmse": 4979.959839195493,
+      "coverage_80": 50.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3526",
+      "n": 30,
+      "mape": 5.506690901427744,
+      "mae": 2166.6666666666665,
+      "rmse": 3082.207001484488,
+      "coverage_80": 66.66666666666666
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3527",
+      "n": 30,
+      "mape": 9.083690572908564,
+      "mae": 3716.6666666666665,
+      "rmse": 3806.7921753973733,
+      "coverage_80": 76.66666666666667
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3528",
+      "n": 30,
+      "mape": 3.332990763025092,
+      "mae": 1466.6666666666667,
+      "rmse": 2116.404183200049,
+      "coverage_80": 66.66666666666666
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3529",
+      "n": 30,
+      "mape": 6.7617712701208434,
+      "mae": 2933.3333333333335,
+      "rmse": 3646.916505762094,
+      "coverage_80": 73.33333333333333
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3571",
+      "n": 30,
+      "mape": 13.695249769553175,
+      "mae": 5166.666666666667,
+      "rmse": 5468.089245796927,
+      "coverage_80": 33.33333333333333
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3572",
+      "n": 30,
+      "mape": 18.28333242149032,
+      "mae": 7133.333333333333,
+      "rmse": 7320.06375199925,
+      "coverage_80": 0.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3573",
+      "n": 30,
+      "mape": 13.007908595461352,
+      "mae": 4916.666666666667,
+      "rmse": 5067.050424063294,
+      "coverage_80": 6.666666666666667
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3574",
+      "n": 30,
+      "mape": 16.540484403397507,
+      "mae": 6900.0,
+      "rmse": 7323.478226453148,
+      "coverage_80": 33.33333333333333
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3575",
+      "n": 30,
+      "mape": 10.796662274923143,
+      "mae": 3950.0,
+      "rmse": 4233.792626003309,
+      "coverage_80": 46.666666666666664
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3576",
+      "n": 30,
+      "mape": 16.88851308416722,
+      "mae": 6383.333333333333,
+      "rmse": 6589.764790946639,
+      "coverage_80": 6.666666666666667
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3577",
+      "n": 30,
+      "mape": 19.738095238095234,
+      "mae": 7600.0,
+      "rmse": 8033.264176742437,
+      "coverage_80": 46.666666666666664
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3578",
+      "n": 30,
+      "mape": 14.041591701059314,
+      "mae": 5475.0,
+      "rmse": 5991.139290652488,
+      "coverage_80": 40.0
+    },
+    {
+      "commodity": "daging_ayam",
+      "city_id": "3579",
+      "n": 30,
+      "mape": 14.609832554135501,
+      "mae": 5533.333333333333,
+      "rmse": 5945.586598477899,
+      "coverage_80": 36.666666666666664
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3501",
+      "n": 30,
+      "mape": 12.924901185770752,
+      "mae": 2933.3333333333335,
+      "rmse": 3076.7948691238203,
+      "coverage_80": 46.666666666666664
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3502",
+      "n": 30,
+      "mape": 5.42497467071935,
+      "mae": 1300.0,
+      "rmse": 1408.3086782851738,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3503",
+      "n": 30,
+      "mape": 8.752441155308869,
+      "mae": 2000.0,
+      "rmse": 2057.5065816014617,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3504",
+      "n": 30,
+      "mape": 10.4811083242109,
+      "mae": 2458.3333333333335,
+      "rmse": 2483.6968414039584,
+      "coverage_80": 73.33333333333333
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3505",
+      "n": 30,
+      "mape": 10.433912078553282,
+      "mae": 2450.0,
+      "rmse": 2481.598946915745,
+      "coverage_80": 16.666666666666664
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3506",
+      "n": 30,
+      "mape": 9.18626146110618,
+      "mae": 2166.6666666666665,
+      "rmse": 2269.3611435820435,
+      "coverage_80": 66.66666666666666
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3507",
+      "n": 30,
+      "mape": 11.244444444444444,
+      "mae": 2600.0,
+      "rmse": 2732.520204255893,
+      "coverage_80": 23.333333333333332
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3508",
+      "n": 30,
+      "mape": 0.11904761904761904,
+      "mae": 33.333333333333336,
+      "rmse": 182.57418583505537,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3509",
+      "n": 30,
+      "mape": 8.395907383220717,
+      "mae": 1933.3333333333333,
+      "rmse": 2183.269719175042,
+      "coverage_80": 86.66666666666667
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3510",
+      "n": 30,
+      "mape": 8.678260869565218,
+      "mae": 2066.6666666666665,
+      "rmse": 2206.052281036573,
+      "coverage_80": 66.66666666666666
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3511",
+      "n": 30,
+      "mape": 12.066206707486614,
+      "mae": 2816.6666666666665,
+      "rmse": 2851.899951494325,
+      "coverage_80": 0.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3512",
+      "n": 30,
+      "mape": 13.907143801091202,
+      "mae": 3283.3333333333335,
+      "rmse": 3330.415389507241,
+      "coverage_80": 53.333333333333336
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3513",
+      "n": 30,
+      "mape": 4.620533772938954,
+      "mae": 1100.0,
+      "rmse": 1316.5611772087666,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3514",
+      "n": 30,
+      "mape": 11.770699414081909,
+      "mae": 2726.6666666666665,
+      "rmse": 2775.487945088815,
+      "coverage_80": 33.33333333333333
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3515",
+      "n": 30,
+      "mape": 10.714383700685893,
+      "mae": 2453.3333333333335,
+      "rmse": 2514.400193551801,
+      "coverage_80": 73.33333333333333
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3516",
+      "n": 30,
+      "mape": 10.909310081987691,
+      "mae": 2625.5,
+      "rmse": 2677.3065600835976,
+      "coverage_80": 0.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3517",
+      "n": 30,
+      "mape": 12.339654640764723,
+      "mae": 2783.3333333333335,
+      "rmse": 2847.5135352326834,
+      "coverage_80": 63.33333333333333
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3518",
+      "n": 30,
+      "mape": 4.903381642512077,
+      "mae": 1133.3333333333333,
+      "rmse": 1460.593486680443,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3519",
+      "n": 30,
+      "mape": 9.446212418609685,
+      "mae": 2188.3333333333335,
+      "rmse": 2249.277661828348,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3520",
+      "n": 30,
+      "mape": 10.936776802873009,
+      "mae": 2450.0,
+      "rmse": 2531.468611958942,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3521",
+      "n": 30,
+      "mape": 12.37842190016103,
+      "mae": 2850.0,
+      "rmse": 2899.712629439913,
+      "coverage_80": 10.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3522",
+      "n": 30,
+      "mape": 12.259795142232038,
+      "mae": 2850.0,
+      "rmse": 3029.026246172192,
+      "coverage_80": 23.333333333333332
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3523",
+      "n": 30,
+      "mape": 8.923274829512438,
+      "mae": 2116.6666666666665,
+      "rmse": 2184.2237370135263,
+      "coverage_80": 90.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3524",
+      "n": 30,
+      "mape": 10.84234410693047,
+      "mae": 2583.3333333333335,
+      "rmse": 2612.4700955226263,
+      "coverage_80": 16.666666666666664
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3525",
+      "n": 30,
+      "mape": 12.222222222222223,
+      "mae": 2933.3333333333335,
+      "rmse": 2943.920288775949,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3526",
+      "n": 30,
+      "mape": 0.6068027210884355,
+      "mae": 150.0,
+      "rmse": 584.522597225006,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3527",
+      "n": 30,
+      "mape": 14.176963569886789,
+      "mae": 3333.3333333333335,
+      "rmse": 3393.6214677931694,
+      "coverage_80": 20.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3528",
+      "n": 30,
+      "mape": 10.940376150460184,
+      "mae": 2700.0,
+      "rmse": 2747.726332806817,
+      "coverage_80": 26.666666666666668
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3529",
+      "n": 30,
+      "mape": 14.12623716153128,
+      "mae": 3450.0,
+      "rmse": 3494.0425488727715,
+      "coverage_80": 6.666666666666667
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3571",
+      "n": 30,
+      "mape": 13.025764895330113,
+      "mae": 2983.3333333333335,
+      "rmse": 3015.2390728873665,
+      "coverage_80": 13.333333333333334
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3572",
+      "n": 30,
+      "mape": 8.550543478260868,
+      "mae": 2050.0,
+      "rmse": 2147.673159491453,
+      "coverage_80": 90.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3573",
+      "n": 30,
+      "mape": 8.312739775012947,
+      "mae": 2000.15,
+      "rmse": 2076.7282772428366,
+      "coverage_80": 70.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3574",
+      "n": 30,
+      "mape": 9.96990042393769,
+      "mae": 2333.3333333333335,
+      "rmse": 2452.889452598031,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3575",
+      "n": 30,
+      "mape": 8.805833333333336,
+      "mae": 2115.0,
+      "rmse": 2130.5809067012688,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3576",
+      "n": 30,
+      "mape": 5.851243711321006,
+      "mae": 1426.6666666666667,
+      "rmse": 1582.5612152457168,
+      "coverage_80": 100.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3577",
+      "n": 30,
+      "mape": 7.505437352245862,
+      "mae": 1800.0,
+      "rmse": 1884.1443681416772,
+      "coverage_80": 80.0
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3578",
+      "n": 30,
+      "mape": 10.29108309990663,
+      "mae": 2500.0,
+      "rmse": 2591.653268990022,
+      "coverage_80": 26.666666666666668
+    },
+    {
+      "commodity": "telur_ayam",
+      "city_id": "3579",
+      "n": 30,
+      "mape": 10.41435169812606,
+      "mae": 2533.3333333333335,
+      "rmse": 2585.214368932165,
+      "coverage_80": 33.33333333333333
     }
   ]
 }
