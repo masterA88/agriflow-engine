@@ -54,7 +54,7 @@ class Settings:
     gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
     # gemini-1.5-flash is retired; 2.5 Flash-Lite is the cheapest current tier and
     # itself retires 16 Oct 2026 (budget on its successor for a Q4 pilot).
-    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
     # OpenAI — second-tier fallback, tried only when Gemini errors, times out,
     # or returns something unparsable (see whatsapp_bot/openai_client.py and
@@ -65,6 +65,19 @@ class Settings:
     # trusting this name months from now; see docs/SETUP_MANYCHAT_LLM.md.
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")
+
+    # Which provider answers FIRST. The other becomes its fallback tier, so
+    # this flips the cascade end to end without a code change.
+    #
+    # "gemini" as of 2026-09-11. It was briefly "openai", set when Gemini
+    # appeared to be both broken and slow. Both halves of that turned out to
+    # be wrong: the schema rejection was our bug (additionalProperties, fixed
+    # in gemini_client._for_gemini_schema) and the 504s belonged to one
+    # particular API key, not to the models. Re-measured on the working key,
+    # Gemini on 3.5-flash-lite answers tool questions in 2.0 to 3.2s against
+    # OpenAI's 4.6 to 6.0s, and does it on the free tier rather than a billed
+    # one. Set LLM_PRIMARY=openai to put OpenAI back in front.
+    llm_primary: str = os.getenv("LLM_PRIMARY", "gemini").strip().lower()
 
     # Server
     public_base_url: str = os.getenv("PUBLIC_BASE_URL", "http://localhost:8000")

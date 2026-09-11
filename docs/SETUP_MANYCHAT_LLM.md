@@ -15,34 +15,42 @@ This is the operator runbook. The architecture and the reasons behind it live in
 | Gemini billing | Not set up. The "Set up billing" link is on the API keys page. |
 | ManyChat | Account exists (`fb5562173`), plan **Trial**, no channel connected. The WhatsApp connect wizard is at "Which number do you want to use?". |
 | WhatsApp number | None usable. The number in `whatsapp_bot/config.py` is Twilio's shared sandbox (`+14155238886`), which cannot move. |
-| Backend endpoint | `POST /manychat/webhook` is built and tested (670 tests passing as of 2026-09-10): shared-secret auth, session memory, quota, the Gemini-then-OpenAI tool-calling cascade over 15 data tools, and the 7.5s deadline/pending push. See section 3c. Not yet on the HF Space, and `MANYCHAT_WEBHOOK_SECRET` has not been generated. |
+| Backend endpoint | `POST /manychat/webhook` is built, tested, and **verified against live Gemini on 2026-09-11**: real tool calls returning real BPS numbers in Indonesian and Javanese krama. See sections 3c and 3d. Not yet on the HF Space, and `MANYCHAT_WEBHOOK_SECRET` has not been generated. |
 
 ## 1. Gemini: which model
 
-Recommendation: pin **`gemini-3.8-flash`** for the bot, and keep **`gemini-3.5-flash-lite`** as the cheap fallback. Decide between them with the language eval in section 3, not by feel.
+Recommendation as of 2026-09-11: pin **`gemini-3.5-flash-lite`**. It is the fastest and cheapest of everything tested, answering tool-backed questions in 2.0 to 3.2 seconds.
 
-Why this pair, from the Gemini API pricing and models pages (2026-09-08):
+This section was rewritten twice in one day and the reason matters more than the answer. The 2026-09-08 recommendation of `gemini-3.8-flash` came from the pricing page rather than from a test. The first measurement run then appeared to show most models failing, which turned out to be **an artefact of which API key was in use**, not a property of the models. Two keys on this account behave completely differently:
 
-| Model | Status | Paid price per 1M tokens (input / output) | Free tier |
+| Model | Key ending `uXA` | Key ending `MzeJlw` | Paid price per 1M (in / out) |
 |---|---|---|---|
-| `gemini-3.8-flash` | New stable, current general-purpose Flash | $0.75 / $3.75 (rises to $1.50 / $7.50 after 2026-12-31) | yes |
-| `gemini-3.7-flash` | Stable | $0.75 / $3.75 (same schedule) | yes |
-| `gemini-3.5-flash-lite` | Stable, cheapest current line | $0.30 / $2.50 | yes |
-| `gemini-2.5-flash` | Still listed, older generation | $0.30 / $2.50 | yes |
-| `gemini-2.5-flash-lite` | Still listed, repo default today | $0.10 / $0.40 | yes |
+| `gemini-3.5-flash-lite` | 504 | **OK, 1.0s plain, 2.0 to 3.2s with tools** | $0.30 / $2.50 |
+| `gemini-3.8-flash` | 504 | OK but slow and variable, 4.5 to 11.7s | $0.75 / $3.75 (rises after 2026-12-31) |
+| `gemini-3.7-flash` | OK, 4.5s | OK, 2.3s | $0.75 / $3.75 |
+| `gemini-2.5-flash` | 404, "no longer available to new users" | OK, 1.6s | $0.30 / $2.50 |
+| `gemini-2.5-flash-lite` | 404 | 404 | withdrawn |
+
+Three things to take from that table.
+
+The repo default until 2026-09-11 was `gemini-2.5-flash-lite`, which is **withdrawn on both keys**, so the default shipped in `config.py` would have failed outright on any fresh deployment. It is now `gemini-3.5-flash-lite`.
+
+`gemini-2.5-flash` answers on the older key but returns "no longer available to new users" on the newer one, which is the clearest sign the two keys sit on different projects with different grandfathering. **Use the key ending `MzeJlw`.**
+
+And a model being listed and priced is not evidence it will serve your key. Neither is one key's behaviour evidence for another's. Re-run this sweep whenever the key changes, not just when the model does.
 
 Notes that matter for the decision:
 
-- Any Gemini model answers Indonesian well. Javanese, especially krama, is the open question, and newer models are the safer bet. That is why the default is 3.8 Flash and the eval exists.
+- Javanese is no longer the open question. On 2026-09-11 both `gemini-3.8-flash` and `gemini-3.5-flash-lite` answered Javanese questions in Javanese with the price taken from a real tool call, and 3.8-flash produced correct krama. Section 3's eval still matters for breadth, but the register is not a blocker.
 - Cost is not the deciding factor. A bot turn is roughly 3,000 input tokens (system prompt, tool schema, session summary, tool results) and 300 output tokens. On 3.8 Flash that is about $0.0034 per turn, on 3.5 Flash-Lite about $0.0017. At 1,000 conversations a month with five turns each, the difference is about $9 a month.
-- The repo default `gemini-2.5-flash-lite` (`config.py:57`) carries a comment saying it retires on 16 October 2026. The deprecations page shows no shutdown date for it as of today, so the comment is unverified. Change the default anyway; the 2.5 line is two generations old.
+- `gemini-3.5-flash-lite` also chains tools correctly: asked what happens if Semeru erupts, it called `list_presets` then `run_whatif` and returned a real scenario result in 3.2 seconds.
 - Function calling is what the orchestrator relies on; all Flash models support it. Do not use a preview model in production.
 - Rate limits are per project, not per key, and the numbers are shown only inside AI Studio (Rate Limit page). The free tier is enough for the eval and local development. Tier 1 (billing on) is enough for the pilot.
 
 Set in the environment:
 
 ```
-GEMINI_MODEL=gemini-3.8-flash
+GEMINI_MODEL=gemini-3.5-flash-lite
 ```
 
 ## 2. Gemini: billing (founder does this, about 10 minutes)
@@ -58,8 +66,8 @@ Both the free and paid tiers are available in Indonesia (Gemini API available-re
 
 Where the key goes, and nowhere else:
 
-- Local: `.env` at the repo root, line `GEMINI_API_KEY=...` (the file is gitignored; never paste the key into chat, commits or the dashboard).
-- Production: Hugging Face Space `masterAAA123/agriflow-api`, Settings, Variables and secrets, add secret `GEMINI_API_KEY`, and set `GEMINI_MODEL=gemini-3.8-flash` and `MOCK_MODE=false`. Restart the Space.
+- Local: **`whatsapp_bot/.env`**, not the repo-root `.env`. `config.py` loads `whatsapp_bot/.env` first and stops there, so bot settings written to the root file are silently ignored. Both files are gitignored. Never paste a key into chat, a commit, or the dashboard.
+- Production: Hugging Face Space `masterAAA123/agriflow-api`, Settings, Variables and secrets, add secret `GEMINI_API_KEY`, and set `GEMINI_MODEL=gemini-3.5-flash-lite` and `MOCK_MODE=false`. Restart the Space.
 
 ## 3. Gemini: prove Indonesian and Javanese before pinning
 
@@ -67,7 +75,7 @@ Run the 30-utterance eval (15 Indonesian, 8 Javanese ngoko, 7 Javanese krama). I
 
 ```
 python tools/eval_llm_lang.py --out .tmp/eval_lang.md
-python tools/eval_llm_lang.py --models gemini-3.8-flash gemini-3.5-flash-lite gemini-2.5-flash
+python tools/eval_llm_lang.py --models gemini-3.5-flash-lite gemini-3.8-flash
 ```
 
 What to look at in the report:
@@ -86,14 +94,14 @@ Pin the cheapest model that passes the Javanese grading. If none passes krama, t
 
 **Setup, about 10 minutes:**
 
-1. Go to https://platform.openai.com, sign in or create an account, and open **Settings → Billing**. Add a payment method and set a monthly budget limit (start at $10 to $20; the fallback tier is rarely called, so this is a ceiling, not an expected spend). A small number of test requests work before billing is added, but production traffic needs it.
+1. Go to https://platform.openai.com, sign in or create an account, and open **Settings → Billing**. Add a payment method and set a monthly budget limit. **Since 2026-09-11 OpenAI is the PRIMARY provider** (see section 3d), so this is an expected spend rather than a rarely-touched ceiling: budget for roughly every turn hitting it, not the small fraction a fallback would take. A small number of test requests work before billing is added, but production traffic needs it.
 2. **Settings → API keys**, create a new secret key, name it `agriflow-fallback`. Copy it immediately; it is shown once.
 3. Put it in `.env` locally and as an HF Space secret, same pattern as `GEMINI_API_KEY`:
    ```
    OPENAI_API_KEY=sk-...
    OPENAI_MODEL=gpt-5.6-luna
    ```
-   Leaving `OPENAI_API_KEY` empty disables this tier entirely: the bot behaves exactly as it did before, Gemini then straight to the keyword mock. There is no code path that requires it.
+   Leaving `OPENAI_API_KEY` empty does not break anything: `build_llm_client()` sees the configured primary has no key, inverts the order, and puts Gemini in front with no fallback beneath it. That guard exists because a keyless primary would otherwise be born mocked and short-circuit before ever reaching a perfectly good key on the other tier.
 4. Model choice, verified against OpenAI's pricing page on 2026-09-09: `gpt-5.6-luna` ($0.20 / $1.20 per 1M input/output tokens) is the cheap, fast tier and the closest analogue to Gemini's cheap Flash-Lite tier, actually a little cheaper on input. `gpt-5.6-terra` ($2.00 / $12.00) is the mid tier, worth trying only if Luna's Javanese replies fail grading. Both support function/tool calling and a 1M-token context window; multilingual capability is stated on the model page but, exactly like Gemini, that claim has not been tested here. Run the eval before trusting it.
 5. Run the same 30-utterance eval against OpenAI, side by side with Gemini:
    ```
@@ -145,40 +153,197 @@ Every tool calls the same payload-builder function the dashboard's own REST API 
 **Test coverage as of 2026-09-10:** 670 tests passing. `tests/test_tool_calling.py` covers the round-trip loop against fake Gemini and OpenAI SDK responses, `tests/test_orchestrator.py` covers the full pipeline (commands before quota, quota before the model, the language switch, the deadline split, session persistence), and `tests/test_manychat_webhook.py` covers the real FastAPI route: the auth header is enforced, an unset secret fails closed, and a correctly authenticated request gets a real mock-mode answer back.
 
 **What is left is not code.** Generate `MANYCHAT_WEBHOOK_SECRET` and set it plus the other `MANYCHAT_*` variables (section 6) as HF Space secrets, redeploy the Space, then do sections 4 and 5 below: the WhatsApp number and the ManyChat flow itself still do not exist.
+## 3d. Live verification, 2026-09-11: two bugs the unit tests could not catch
+
+The orchestrator was run against live Gemini for the first time on 2026-09-11. It did not work, and both failures were invisible to `tests/test_tool_calling.py` because that file asserts against **fake** SDK response objects. It proves the loop logic and nothing about whether either vendor accepts our tool schema.
+
+**Gemini rejected every request.** `400 INVALID_ARGUMENT`, naming all 15 declarations at once: `Unknown name "additional_properties"`. Gemini's function-declaration schema is an OpenAPI 3.0 subset with no `additionalProperties`, and one occurrence fails the whole call. Fixed by stripping the key on the Gemini path only (`GeminiClient._for_gemini_schema`), so `TOOL_SPECS` stays a single shared list.
+
+**OpenAI rejected the second round trip.** `Unknown parameter: 'input[1].status'`. The Responses API stamps a read-only `status` on output items and then refuses that same field back as input. The item has to be echoed to preserve the `call_id` linkage, so the fix drops the field instead.
+
+After both fixes, measured end to end with real engine data:
+
+| Question | Time | Tools called | Result |
+|---|---|---|---|
+| "Berapa harga cabai rawit di Kabupaten Kediri?" | 17.9s | `get_price`, `get_data_freshness` | Rp30.750/kg, dated |
+| "Kabupaten mana saja yang surplus bawang merah?" | 10.2s | `get_surplus_deficit`, `get_data_freshness` | Nganjuk 190.610,19 t, ranked list |
+| "Regane bawang abang ing Kabupaten Nganjuk pinten?" | 14.9s | `get_price` | Rp24.375/kg, answered in Javanese krama |
+
+Javanese krama works without a separate translation layer or an Indonesian-specialist model.
+
+Gemini's latency, however, was 10 to 18 seconds per answer, above both the 7.5 second deadline and ManyChat's 10 second timeout. That is why the cascade was flipped later the same day: `LLM_PRIMARY` now defaults to `openai`, with Gemini as the tier underneath. Re-measured with OpenAI in front on `gpt-5.6-luna`, the same two questions took **6.0s and 4.6s, both inside the deadline**, each with a successful tool call and the same prices. Set `LLM_PRIMARY=gemini` to put Gemini back in front with no code change.
+
+One register caveat: on the Javanese question Gemini answered in krama ("Regi ... inggih punika") while OpenAI answered in ngoko ("Regane ... saben kg"). If formal register matters for a particular audience, that is a point in Gemini's favour worth weighing against the latency.
+
+The test gap remains open: nothing in the suite would catch a third schema incompatibility. A contract test that sends one real request per provider, skipped when no key is present, is the fix.
 
 ## 4. ManyChat: plan, number, connection (founder does this)
 
-Verified from ManyChat's help centre (articles 25800276116508 and 25800228332572, updated early September 2026):
+Budget about two hours for this section if nothing goes wrong, and expect the Meta step to be where it does go wrong.
 
-- WhatsApp is **not** available on the Essential plan. **Pro** is required: $39 a month, or $29 a month billed annually, includes 2,500 active contacts, then $0.05 per extra contact per month ($0.038 on annual). Active contacts are billed per distinct person per month, not per message. Take monthly for the first month.
-- The trial the account is on now may allow you to connect a channel and build flows; upgrade to Pro before the demo so nothing pauses mid-pitch.
+### 4.1 Buy the Pro plan
 
-Steps:
+Re-verified on 2026-09-11 against ManyChat's own plan pages. **WhatsApp cannot be connected on Essential at any price.** Essential ($17 a month, 250 active contacts) covers two channels and those are Instagram and Facebook Messenger only. WhatsApp appears as a connectable channel starting at **Pro** ($39 monthly, $29 a month if billed annually, 2,500 active contacts, then $0.05 per extra contact).
 
-1. **Get a number.** You need an Indonesian mobile number that is either linked to the WhatsApp Business App or not on any WhatsApp account at all. A number on the personal WhatsApp app must be removed from WhatsApp first. ManyChat also offers to sell a new number in the wizard (the "New number" card). For the pitch, a real +62 number reads better than a foreign one.
-2. **Meta Business Portfolio.** Use the AgriFlow business (not a personal profile). Have the business name, address and website (https://agriflow.farm) ready; Meta asks for them in the embedded signup.
-3. In ManyChat: Home, **Connect Channels**, **WhatsApp**, **Connect**. The wizard is already open in the browser at "Which number do you want to use?". Choose the card, then **Connect Through Meta**. Log in to Facebook, pick or create the Business Portfolio, enter the number, receive the SMS or voice code. This step grants ManyChat access to your WhatsApp Business Account; only the account owner should click it.
-4. After connection, the account starts with Meta's default messaging limit (unverified businesses can message a limited number of unique users per day). Complete **business verification** in Meta Business Manager when you can; it takes days, so start it now.
-5. Settings, **API**, generate the token. Store it as `MANYCHAT_API_TOKEN` in `.env` locally and as an HF Space secret. Refreshing the token disables everything that used the old one.
-6. Settings, **AI**: turn every ManyChat AI feature **off** (AI Step, Intentions, AI-generated replies). Gemini in our backend is the only model that talks to users, and ManyChat's AI terms allow them to use inputs and outputs to improve their features.
+Take the monthly option. An annual commitment for a pilot that has not started is money spent on a guess.
 
-## 5. ManyChat: the flow (after the backend is deployed)
+An "active contact" is a distinct person who messaged you or triggered an automation inside the billing month, counted once no matter how many messages they send. A demo audience of judges plus a few test numbers is nowhere near 2,500.
 
-The endpoint itself is built (section 3c); do this once `MANYCHAT_WEBHOOK_SECRET` is set on the HF Space and the Space has been redeployed with this code, since until then the External Request has nothing to authenticate against. The exact request and response JSON, the custom-field mapping and the 7.5-second deadline rule are in the spec, sections 1.3 to 1.7, and now also built exactly that way in `whatsapp_bot/manychat.py` and `whatsapp_bot/orchestrator.py`. In short:
+### 4.2 Get a WhatsApp number
 
-1. Settings, **Fields**, create custom fields (text unless noted): `agriflow_reply`, `agriflow_status`, `agriflow_lang`, `agriflow_intent`, `agriflow_token`. Note each field's numeric id (Public API `getCustomFields`); they go into the `MANYCHAT_FIELD_*` variables.
-2. Automation, **Default Reply** (fires on any message that matches no keyword): one **External Request** action, `POST https://masteraaa123-agriflow-api.hf.space/manychat/webhook`, header `X-AgriFlow-Key: <MANYCHAT_WEBHOOK_SECRET>`, body with `subscriber_id`, `phone`, `first_name`, `last_input_text`, `last_interaction`. Map the response fields to the custom fields above.
-3. Next node: **Send Message** with text `{{agriflow_reply}}`. Add a condition: if `agriflow_status` equals `pending`, send the short holding message instead; the backend pushes the full answer through the Public API.
-4. Keyword triggers for `MULAI`, `BANTUAN`, `STATUS`, `PRO`, `BERHENTI` so the commands stay free of quota and never reach the model.
-5. Test with the built-in preview, then with your own phone. Remember: response mapping does not run in ManyChat's Test mode, so the real check is a message from a real number.
+The number must be one of:
+
+- a number not currently registered on any WhatsApp account, or
+- a number already on the **WhatsApp Business App**, which can be migrated, or
+- a new number, including the one ManyChat offers to sell inside the connect wizard.
+
+A number sitting on the ordinary personal WhatsApp app must be **deleted from WhatsApp first**, which wipes that account's chat history. Do not use a personal number you rely on.
+
+The number in `whatsapp_bot/config.py` is Twilio's shared sandbox (`+14155238886`) and cannot be moved here. For a pitch, a real Indonesian `+62` number reads far better than a foreign one.
+
+The number must be able to receive an SMS or a voice call for the verification code during setup.
+
+### 4.3 Prepare the Meta Business Portfolio before you start
+
+Meta's embedded signup asks for these mid-flow, and hunting for them with the wizard open is how people get stuck:
+
+- Business legal name
+- Business address
+- Business website, use `https://agriflow.farm`
+- A Facebook account that is an admin of the Business Portfolio
+
+Use the AgriFlow business portfolio, not a personal profile. Only the account owner should click through this step, because it grants ManyChat access to your WhatsApp Business Account.
+
+### 4.4 Connect the channel
+
+1. ManyChat **Home**, then **Connect Channels**, then **WhatsApp**, then **Connect**.
+2. At "Which number do you want to use?", pick the card matching your situation from 4.2.
+3. Click **Connect Through Meta**. A Facebook popup opens.
+4. Log in, select or create the Business Portfolio, and fill in the business details from 4.3.
+5. Enter the phone number, choose SMS or voice, and enter the code.
+6. Accept the WhatsApp Business terms and finish. The channel should then show as connected in ManyChat.
+
+If the popup stalls or loops, close it and restart from step 1. A half-finished embedded signup is common and usually clears on a clean retry rather than by clicking through the stuck screen.
+
+### 4.5 Understand your messaging limit on day one
+
+An unverified business starts on Meta's lowest tier and can message only a limited number of unique users per day. That is enough for a demo and a small pilot.
+
+Start **business verification** in Meta Business Manager the same day you connect. It takes days rather than hours, so it cannot be rushed before a demo, and the demo does not need it.
+
+### 4.6 Generate the API token
+
+ManyChat **Settings**, then **API**, then generate the token. Store it as `MANYCHAT_API_TOKEN`.
+
+This token is what lets the backend push a late answer back to the user, which per section 5.6 is the normal path rather than the exception. Without it, slow answers are silently dropped.
+
+Refreshing this token invalidates everything using the old one, so generate it once and put it straight into the Space secrets.
+
+### 4.7 Turn ManyChat's own AI off
+
+ManyChat **Settings**, then **AI**. Switch off every AI feature: AI Step, Intentions, AI-generated replies.
+
+Two reasons. Gemini in our backend is the only model that should talk to users, and ManyChat's AI terms permit them to use inputs and outputs to improve their own features, which is not something to hand farmer conversations to.
+
+## 5. ManyChat: the flow, node by node
+
+The endpoint is built and tested (section 3c). Do this once `MANYCHAT_WEBHOOK_SECRET` is set on the HF Space and the Space is redeployed, because until then every request is correctly rejected with 401.
+
+### 5.1 Create the five custom fields
+
+ManyChat **Settings**, then **Fields**, then **New Field**. All five are type **Text**:
+
+| Field name | Holds |
+|---|---|
+| `agriflow_reply` | The answer text, or the holding line |
+| `agriflow_status` | `ok` or `pending` |
+| `agriflow_lang` | `id` or `jv` |
+| `agriflow_intent` | Which tools ran, useful for debugging |
+| `agriflow_token` | Reserved, currently always empty |
+
+Name them exactly as written. They match the JSON keys the backend returns, so the mapping is one to one and you never have to remember a translation.
+
+### 5.2 Create the Default Reply automation
+
+**Automation**, then **Default Reply**. This fires on any message that matches no keyword trigger, which is every real question a farmer will ask.
+
+### 5.3 Add the External Request node
+
+Add an action block, then **Make External Request**. Fill it in as:
+
+- **Request type**: `POST`
+- **URL**: `https://masteraaa123-agriflow-api.hf.space/manychat/webhook`
+- **Headers**:
+  - `Content-Type` with value `application/json`
+  - `X-AgriFlow-Key` with the value of your `MANYCHAT_WEBHOOK_SECRET`
+
+Only HTTPS URLs are accepted, which the Space already is.
+
+The secret goes in a header and never in the URL. ManyChat logs request URLs in its own flow history, so a secret in a query string would sit in plain view inside the ManyChat UI.
+
+### 5.4 Fill in the request body
+
+The body is JSON. Use the field picker in the body editor to insert each ManyChat value rather than typing the token by hand, because the exact token text differs between accounts and the picker always inserts the correct one.
+
+```json
+{
+  "subscriber_id": "<System Field: Contact Id>",
+  "phone": "<System Field: Phone>",
+  "first_name": "<System Field: First Name>",
+  "last_input_text": "<System Field: Last Text Input>",
+  "last_interaction": "<System Field: Last Interaction>"
+}
+```
+
+Only `subscriber_id` and `last_input_text` are required by the backend. `phone` supplies the quota identity when present, and the backend falls back to hashing `subscriber_id` when it is empty, so a missing phone degrades quota tracking rather than breaking the turn.
+
+`last_input_text` also carries the **media file URL** when the user sends a voice note or an image instead of text. The backend does not yet distinguish those, so it would treat that URL as though it were a typed question. Until that is handled, either accept odd replies to voice notes or add a **Last Reply Type** condition ahead of this node that routes audio to a message asking the user to type instead.
+
+### 5.5 Map the response
+
+Open **Response Mapping**. ManyChat shows the JSON structure that came back and lets you map each value into a custom field by its JSONPath. Map all five:
+
+| JSONPath | Custom field |
+|---|---|
+| `$.agriflow_reply` | `agriflow_reply` |
+| `$.agriflow_status` | `agriflow_status` |
+| `$.agriflow_lang` | `agriflow_lang` |
+| `$.agriflow_intent` | `agriflow_intent` |
+| `$.agriflow_token` | `agriflow_token` |
+
+### 5.6 Branch on status, and expect "pending" to be the normal case
+
+Add a **Condition** node after the request, testing whether `agriflow_status` equals `ok`.
+
+- **If `ok`**: a **Send Message** node with the text `{{agriflow_reply}}` and nothing else.
+- **If not `ok`**, meaning `pending`: a **Send Message** node with `{{agriflow_reply}}`, which at that point holds the short holding line in the user's own language. The real answer then arrives on its own, pushed by the backend through the Public API.
+
+Build this branch properly even though it should now be the rarer path. Measured on 2026-09-11 with OpenAI primary (`gpt-5.6-luna`), answers took 4.6 to 6.0 seconds, inside the 7.5 second deadline, so most turns should return `ok` and answer in the webhook response itself. With Gemini primary the same questions took 10 to 18 seconds and would almost always return `pending`.
+
+Latency is not guaranteed, though. A slow upstream, a question needing two tool calls, or a cold Space can push any turn past the deadline. If this branch is empty when that happens, the user gets silence. Fill it.
+
+### 5.7 Add keyword triggers for the billing commands
+
+Create keyword triggers so these never reach the model and never consume quota: `MULAI`, `BANTUAN`, `STATUS`, `PRO`, `BERHENTI`.
+
+They can point at the same External Request flow. The backend detects them before the quota check and answers them free. Giving them their own triggers simply keeps them out of the Default Reply path.
+
+### 5.8 Test in the right order
+
+1. **Check the request reaches the backend.** Watch the HF Space logs while you send a message. A 401 means the header secret does not match the Space's `MANYCHAT_WEBHOOK_SECRET`.
+2. **Test from a real phone, not Test mode.** Response mapping does not run in ManyChat's preview, so a flow that looks correct in Test mode can still fail to fill the custom fields.
+3. **Send a question with a known answer**, for example "Berapa harga cabai rawit di Kabupaten Kediri?", and confirm the number matches what the dashboard shows for the same commodity and kabupaten. They share one code path, so any disagreement is a bug worth stopping for.
+4. **Send a Javanese question** such as "Regane bawang abang ing Nganjuk pinten?" and confirm the reply comes back in Javanese.
+5. **Confirm the late answer arrives.** Because most answers are `pending`, verify that the second message actually lands. If it never does, `MANYCHAT_API_TOKEN` is missing or wrong on the Space.
 
 ## 6. Environment variables (full list is in the spec, section 6.4)
 
 ```
 GEMINI_API_KEY=                 # secret
-GEMINI_MODEL=gemini-3.8-flash
+GEMINI_MODEL=gemini-3.5-flash-lite
 OPENAI_API_KEY=                 # secret; empty disables the fallback tier entirely
 OPENAI_MODEL=gpt-5.6-luna
+LLM_PRIMARY=openai              # which provider answers first; the other becomes its fallback
 MANYCHAT_WEBHOOK_SECRET=        # 32 random bytes, base64url; production refuses to boot without it
 MANYCHAT_API_TOKEN=             # secret, from ManyChat Settings > API
 MANYCHAT_API_BASE=https://api.manychat.com

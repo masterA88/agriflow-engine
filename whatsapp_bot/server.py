@@ -183,7 +183,7 @@ def _load_data_backend() -> dict:
 from . import billing
 from .auth import AuthUser, GatedUser, OptionalUser, RequireUser, auth_configured, require_auth_enabled
 from .config import settings
-from .gemini_client import GeminiClient
+from .gemini_client import GeminiClient, build_llm_client
 from .handlers import (
     MISSING_SLOT_PREFIX, OUT_OF_COVERAGE_PREFIX, EngineData, dispatch,
 )
@@ -224,7 +224,7 @@ async def lifespan(app: FastAPI):
     # active; logs the same findings as warnings in development.
     security.check_production_posture(settings)
     state.data = EngineData(_load_data_backend())
-    state.gemini = GeminiClient()
+    state.gemini = build_llm_client()
     state.subs = SubscriptionService()
     yield
     # No teardown needed
@@ -297,7 +297,7 @@ def _ensure_state() -> None:
     if state.data is None:
         state.data = EngineData(_load_data_backend())
     if state.gemini is None:
-        state.gemini = GeminiClient()
+        state.gemini = build_llm_client()
     if state.subs is None:
         state.subs = SubscriptionService()
 
@@ -821,7 +821,25 @@ def _price_lookup_payload(commodity: str, kabupaten: str) -> dict:
             f"Kemungkinan kabupaten tidak dikenali, atau komoditas ini tidak "
             f"terdaftar defisit maupun surplus di sana menurut neraca BPS."
         )
-    return {"commodity": payload["commodity"], **row}
+    # Provenance travels WITH the number. Without it the model has no way to
+    # know this price is a 2022 balance figure, and when it also calls
+    # get_data_freshness it attaches that tool's recent price_history_end to
+    # this number instead, reporting a 2022 price as a current one. The two
+    # differ by a lot: cabai rawit is Rp30.750 here and around Rp58.000 in the
+    # 2026 daily series, so the mislabel is not cosmetic.
+    meta = _meta_payload()
+    return {
+        "commodity": payload["commodity"],
+        **row,
+        "price_basis": "neraca pangan BPS (harga produsen bila surplus, harga konsumen bila defisit)",
+        "price_reference_year": meta.get("bps_reference_year"),
+        "note_for_model": (
+            "Angka ini berasal dari neraca BPS tahun "
+            f"{meta.get('bps_reference_year')}, BUKAN harga pasar hari ini. "
+            "Sebutkan tahunnya saat mengutip angka ini, dan jangan beri tanggal "
+            "dari alat lain. Untuk harga terkini gunakan get_price_history."
+        ),
+    }
 
 
 def _serialize_match(m) -> Dict[str, Any]:

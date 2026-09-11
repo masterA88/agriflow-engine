@@ -40,20 +40,27 @@ class OpenAiClient:
     """Wrapper for the openai package. Auto-falls back to mock if no API key."""
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None,
-                 mock: Optional[bool] = None):
+                 mock: Optional[bool] = None, enable_fallback: bool = True):
         self.api_key = api_key if api_key is not None else settings.openai_api_key
         self.model_name = model or settings.openai_model
         self.mock = mock if mock is not None else (
             settings.mock_mode or not self.api_key
         )
         self._client = None
-        # Read by GeminiClient's cascade after it calls into this client, so
-        # a silent internal degrade to the mock heuristic (network error,
-        # bad key, rate limit) is reported honestly instead of being labelled
+        # Read by the cascade after it calls into this client, so a silent
+        # internal degrade to the mock heuristic (network error, bad key,
+        # rate limit) is reported honestly instead of being labelled
         # "openai" just because this class was the one holding the call.
         self.last_provider = "mock" if self.mock else "openai"
         if not self.mock:
             self._init_real_client()
+        # Symmetric to GeminiClient: when this client is primary, Gemini is
+        # the tier underneath it. Built with enable_fallback=False so the two
+        # never construct each other in a loop.
+        self._fallback = None
+        if enable_fallback and not self.mock and settings.gemini_api_key:
+            from .gemini_client import GeminiClient
+            self._fallback = GeminiClient(enable_fallback=False)
 
     def _init_real_client(self) -> None:
         try:
@@ -90,6 +97,13 @@ class OpenAiClient:
             return parsed
         except Exception as exc:
             log.warning("llm.openai_classify_failed err=%s", type(exc).__name__)
+            if self._fallback is not None:
+                # Trust the fallback's own last_provider rather than the fact
+                # that the call returned, or a silent degrade inside it would
+                # be mislabelled "gemini".
+                parsed = self._fallback.classify_intent(message)
+                self.last_provider = self._fallback.last_provider
+                return parsed
             self.last_provider = "mock"
             return {"intent": "fallback", "slots": {}}
 
@@ -116,6 +130,10 @@ class OpenAiClient:
             return text
         except Exception as exc:
             log.warning("llm.openai_answer_failed err=%s", type(exc).__name__)
+            if self._fallback is not None:
+                text = self._fallback.answer_with_context(query, context)
+                self.last_provider = self._fallback.last_provider
+                return text
             self.last_provider = "mock"
             return _mock_answer(query, context)
 
@@ -129,9 +147,11 @@ class OpenAiClient:
         """Mirrors GeminiClient.answer_with_tools exactly: same system
         prompt, same tools.py, same two-round-trip bound, same tool-call
         logging shape. See that method's docstring for the full contract.
-        This one never falls back to another provider; when GeminiClient
-        calls it as ITS fallback, this being the end of the line is exactly
-        the point."""
+
+        Falls through to self._fallback (a GeminiClient) when this client is
+        the primary tier, and straight to the fixed apology when it is not.
+        Which case applies is decided at construction by enable_fallback, so
+        a cascade is never more than two providers deep in either order."""
         from .tools import ToolAnswer
 
         if self.mock:
@@ -143,6 +163,10 @@ class OpenAiClient:
             return answer
         except Exception as exc:
             log.warning("llm.openai_tools_failed err=%s", type(exc).__name__)
+            if self._fallback is not None:
+                answer = self._fallback.answer_with_tools(system, message)
+                self.last_provider = self._fallback.last_provider
+                return answer
             self.last_provider = "mock"
             return ToolAnswer(text=_MOCK_TOOL_ANSWER)
 
@@ -184,7 +208,14 @@ class OpenAiClient:
                 args = {}
             result = execute_tool(fc.name, args)
             calls_made.append({"name": fc.name, "args": args, "ok": "error" not in result})
-            conversation.extend(item.model_dump() if hasattr(item, "model_dump") else item for item in resp.output)
+            for item in resp.output:
+                dumped = item.model_dump() if hasattr(item, "model_dump") else dict(item)
+                # The Responses API stamps read-only bookkeeping on output items
+                # and then refuses the same field back as input on the next turn
+                # ("Unknown parameter: 'input[1].status'"). Echoing the item is
+                # required to keep the call_id linkage, so drop the field instead.
+                dumped.pop("status", None)
+                conversation.append(dumped)
             conversation.append({
                 "type": "function_call_output", "call_id": fc.call_id,
                 "output": json.dumps(result, ensure_ascii=False),

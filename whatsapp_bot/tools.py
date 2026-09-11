@@ -268,7 +268,7 @@ TOOL_SPECS: List[Dict[str, Any]] = [
     },
     {
         "name": "get_anomalies",
-        "description": "Detected price spikes or drops (Hampel/MAD scan). All filters optional; without any, returns the highest-scoring anomalies across everything.",
+        "description": "Detected price spikes or drops (Hampel/MAD scan). All filters optional. WITHOUT `since` this ranks by anomaly score across the ENTIRE history back to 2020, so the top hits are usually years old. Whenever the user implies recency ('akhir-akhir ini', 'belakangan', 'bulan ini', 'saiki', 'lagi'), pass `since` with a recent date or the answer will be about something from years ago.",
         "parameters": {"type": "object", "properties": {
             "commodity": _COMMODITY_ARG, "city": _KAB_ARG,
             "since": {"type": "string", "description": "ISO date, only anomalies on or after this date."},

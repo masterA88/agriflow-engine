@@ -31,7 +31,7 @@ from typing import Optional
 
 from .chat_session import ChatSession, ChatSessionStore
 from .config import settings
-from .gemini_client import GeminiClient
+from .gemini_client import GeminiClient, build_llm_client
 from .language import detect_language
 from .manychat import (
     HOLDING_MESSAGE_ID, HOLDING_MESSAGE_JV, ManyChatPushError,
@@ -90,7 +90,7 @@ class Orchestrator:
         sessions: Optional[ChatSessionStore] = None,
         deadline_seconds: float = DEFAULT_DEADLINE_SECONDS,
     ):
-        self.gemini = gemini or GeminiClient()
+        self.gemini = gemini or build_llm_client()
         self.subs = subs or SubscriptionService()
         self.sessions = sessions or ChatSessionStore(db_url=settings.supabase_db_url)
         self.deadline_seconds = deadline_seconds

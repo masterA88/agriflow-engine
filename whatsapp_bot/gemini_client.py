@@ -116,6 +116,37 @@ Konteks AgriFlow:
 
 
 # =============================================================================
+# CASCADE FACTORY
+# =============================================================================
+
+def build_llm_client():
+    """The provider cascade, outermost tier first, per settings.llm_primary.
+
+    Both clients satisfy the same four-part contract (classify_intent,
+    answer_with_context, answer_with_tools, last_provider), so callers hold
+    whichever comes back without caring which vendor is in front. That is the
+    whole reason the order can be a setting instead of a refactor.
+
+    The primary falls back to the other provider, and the other provider
+    falls back to the keyword mock, so the chain is always at most:
+    primary, secondary, mock.
+
+    A primary with no API key would be born mocked and would short-circuit
+    before ever reaching its fallback, stranding a perfectly good key on the
+    other tier. So when the configured primary has no key and the other one
+    does, the order is inverted here rather than silently degrading to mock.
+    """
+    from .openai_client import OpenAiClient
+
+    primary = settings.llm_primary
+    if primary == "openai" and not settings.openai_api_key and settings.gemini_api_key:
+        primary = "gemini"
+    elif primary != "openai" and not settings.gemini_api_key and settings.openai_api_key:
+        primary = "openai"
+    return OpenAiClient() if primary == "openai" else GeminiClient()
+
+
+# =============================================================================
 # CLIENT
 # =============================================================================
 
@@ -123,7 +154,7 @@ class GeminiClient:
     """Wrapper for google-generativeai, with an optional OpenAI fallback tier."""
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None,
-                 mock: Optional[bool] = None):
+                 mock: Optional[bool] = None, enable_fallback: bool = True):
         self.api_key = api_key if api_key is not None else settings.gemini_api_key
         self.model_name = model or settings.gemini_model
         self.mock = mock if mock is not None else (
@@ -138,10 +169,15 @@ class GeminiClient:
         # key), so this is safe even when self.mock is True (fallback simply
         # goes unused, since the methods below short-circuit before reaching
         # it). Deferred import; see the module docstring for why.
+        #
+        # enable_fallback=False is how the two clients avoid recursing into
+        # each other now that either one can be primary: whichever is built
+        # as the other's fallback is built without one of its own, so a
+        # cascade is always exactly two tiers deep plus mock.
         self._fallback = None
-        if not self.mock and settings.openai_api_key:
+        if enable_fallback and not self.mock and settings.openai_api_key:
             from .openai_client import OpenAiClient
-            self._fallback = OpenAiClient()
+            self._fallback = OpenAiClient(enable_fallback=False)
 
     def _init_real_client(self) -> None:
         try:
@@ -261,14 +297,32 @@ class GeminiClient:
             self.last_provider = "mock"
             return ToolAnswer(text=_MOCK_TOOL_ANSWER)
 
+    @staticmethod
+    def _for_gemini_schema(schema: Any) -> Any:
+        """Drop keys Gemini's function-declaration schema does not define.
+
+        Gemini takes an OpenAPI 3.0 subset with no additionalProperties, and
+        rejects the ENTIRE request with 400 INVALID_ARGUMENT when it sees one,
+        naming every declaration at once. OpenAI accepts the same schema with
+        or without it while strict is off, so the key stays in TOOL_SPECS (one
+        spec list, both providers) and is dropped only on this path.
+        """
+        if isinstance(schema, dict):
+            return {k: GeminiClient._for_gemini_schema(v)
+                    for k, v in schema.items() if k != "additionalProperties"}
+        if isinstance(schema, list):
+            return [GeminiClient._for_gemini_schema(v) for v in schema]
+        return schema
+
     def _gemini_answer_with_tools(self, system: str, message: str) -> "ToolAnswer":
         from google.genai import types
         from .tools import TOOL_SPECS, ToolAnswer, execute_tool
+        _for_gemini = GeminiClient._for_gemini_schema
 
         if GeminiClient._gemini_tool is None:
             GeminiClient._gemini_tool = types.Tool(function_declarations=[
                 types.FunctionDeclaration(name=t["name"], description=t["description"],
-                                           parameters=t["parameters"])
+                                           parameters=_for_gemini(t["parameters"]))
                 for t in TOOL_SPECS
             ])
         config = types.GenerateContentConfig(system_instruction=system, tools=[GeminiClient._gemini_tool])
