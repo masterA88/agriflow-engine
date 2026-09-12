@@ -7,6 +7,8 @@ Every expected answer below was transcribed from a live run against real Gemini 
 
 Configuration under test: `LLM_PRIMARY=gemini`, `GEMINI_MODEL=gemini-3.5-flash-lite`, OpenAI second tier on `gpt-5.6-luna`, keyword mock third. All 11 turns came back inside the 7.5 second deadline with `agriflow_status: ok`, so none needed the holding-message path.
 
+**Confirmed against production on 2026-09-11.** Nine of these questions were re-run against the live Hugging Face Space after deployment, and all nine returned `ok` with the correct tool and the numbers below. Measured from an external client the turns took 4.8 to 7.9 seconds, against 1.9 to 3.2 locally. The extra is the Space's cpu-basic hardware plus network round trip, and it eats most of the margin under ManyChat's 10 second ceiling, so expect the occasional `pending` in real use even though none occurred in this run.
+
 ## How to run them, three ways
 
 Do these in order. Each one rules out a different failure, and only the last needs ManyChat.
@@ -153,7 +155,8 @@ Prices below come from the BPS balance, which holds one producer price and one c
 
 **Ask:** Prediksi harga cabai rawit di Surabaya bulan depan berapa?
 **Tool:** `get_forecast`
-**Expect:** A point forecast around Rp52.153 per kg with a P10 to P90 band of roughly Rp34.925 to Rp71.686, and a note that the forecast was generated 3 September 2026.
+**Expect:** A point forecast around Rp52.153 per kg with a wide P10 to P90 band starting near Rp34.925, and a note that the forecast came from TimesFM 2.0 generated 3 September 2026.
+**Acceptable variance:** the upper bound moves depending on which horizon day the model quotes, seen as both Rp71.686 and Rp74.238. Judge this one on the point estimate and the presence of a band, not on the exact ceiling.
 **Note:** this tool uses the real daily price series, so it genuinely differs by city. Use it, not Q1, if you want to show variation between places.
 
 ### Q6. Anomalies, Indonesian

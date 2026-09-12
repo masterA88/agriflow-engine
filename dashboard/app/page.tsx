@@ -7,6 +7,14 @@ import Image from "next/image";
 import Link from "next/link";
 import GuestCta from "./components/GuestCta";
 
+// Jumlah uji otomatis yang lulus. Angka ini dipajang sebagai sinyal kepercayaan,
+// jadi ia harus benar. Sebelumnya tertulis 597 di dua tempat terpisah dan sudah
+// melenceng jauh tanpa ada yang menyadarinya.
+//
+// Verifikasi:  python -m pytest tests/ -q
+// Diperiksa 2026-09-12: 693 lulus, 1 dilewati, 694 terkumpul.
+const UJI_LULUS = 693;
+
 const primaryCta =
   "inline-block rounded-lg bg-emerald-700 px-6 py-3 text-sm font-semibold text-white " +
   "hover:bg-emerald-800 transition-colors";
@@ -91,7 +99,7 @@ export default function LandingPage() {
           </div>
           <p className="mt-5 text-xs text-white/60">
             Data BPS 2022 · Siskaperbapo + PIHPS harga harian 38 kabupaten/kota · IPM 2024 &nbsp;·&nbsp; Engine v1.1.0 ·
-            597 uji otomatis lulus
+            {UJI_LULUS} uji otomatis lulus
           </p>
         </div>
         <div className="mx-auto mt-10 max-w-5xl overflow-hidden rounded-xl border border-white/20 shadow-2xl">
@@ -170,7 +178,7 @@ export default function LandingPage() {
             menampilkan kosong, bukan tebakan.
           </p>
           <p className="mx-auto mt-2 max-w-2xl text-center text-xs text-slate-500">
-            Engine v1.1.0. 597 uji otomatis lulus. Dibangun untuk konteks PIDI
+            Engine v1.1.0. {UJI_LULUS} uji otomatis lulus. Dibangun untuk konteks PIDI
             DIGDAYA Bank Indonesia.
           </p>
         </div>
