@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import os
+import re
 import sys
 
 os.environ.setdefault("MOCK_MODE", "true")
@@ -47,6 +48,101 @@ def quota_off(monkeypatch):
 @pytest.fixture()
 def quota_on(monkeypatch):
     monkeypatch.setattr(orch_mod, "settings", _with_quota(True))
+
+
+# =============================================================================
+# System prompts: the Indonesian and Javanese versions must carry the SAME
+# guardrails.
+#
+# Found 2026-09-12 from a real WhatsApp exchange. Asked "Regane bawang abang
+# ing nganjuk pinten?", the bot answered "rega bawang abang ing Nganjuk tetep
+# Rp24.375 per kg" with no year. Two separate causes, and this class covers
+# the second one: SYSTEM_PROMPT_ID ends with "Akhiri jawaban yang memuat angka
+# dengan menyebut singkat tanggal datanya", and SYSTEM_PROMPT_JV simply did
+# not have that line. A Javanese speaker got a weaker bot than an Indonesian
+# one, silently. (The first cause was the payload shipping a null year; see
+# test_price_provenance.py.)
+#
+# "tetep" means "remains/unchanged". No tool returned a time comparison, so
+# that word was an invented claim about the number rather than an invented
+# number, which the existing "aja tau ngarang angka" rule does not cover.
+# =============================================================================
+
+class TestSystemPromptsAreEquivalent:
+    ID = orch_mod.SYSTEM_PROMPT_ID
+    JV = orch_mod.SYSTEM_PROMPT_JV
+
+    def test_indonesian_requires_stating_the_data_date(self):
+        assert "tanggal datanya" in self.ID
+
+    def test_javanese_requires_stating_the_data_date(self):
+        """The line that was missing entirely."""
+        assert "tanggal dhatane" in self.JV
+
+    def test_indonesian_forbids_unbacked_trend_words(self):
+        for kata in ("tetap", "naik", "turun"):
+            assert kata in self.ID, kata
+
+    def test_javanese_forbids_unbacked_trend_words(self):
+        for kata in ("tetep", "munggah", "mudhun"):
+            assert kata in self.JV, kata
+
+    def test_javanese_names_the_bookish_word_to_avoid(self):
+        """"Adhedhasar" is written/literary Javanese for "berdasarkan". It is
+        what you get when a model translates Indonesian word by word, and a
+        real East Java speaker would say "miturut" or "saka". Reported by the
+        user 2026-09-12 from a live answer that opened with it."""
+        assert "adhedhasar" in self.JV.lower()
+        assert "miturut" in self.JV
+
+    def test_indonesian_names_the_bookish_word_to_avoid(self):
+        assert "berdasarkan data" in self.ID
+        assert "menurut data" in self.ID
+
+    def test_both_require_a_consistent_register(self):
+        """The reported answer mixed a krama/bookish opener into an otherwise
+        ngoko sentence, replying to a krama question ("pinten")."""
+        assert "ajeg" in self.JV
+        assert "ragam bahasa" in self.ID
+
+    def test_both_forbid_inventing_numbers(self):
+        assert "jangan pernah mengarang angka" in self.ID
+        assert "aja tau ngarang angka" in self.JV
+
+    def test_both_require_tools_for_every_number(self):
+        assert "HARUS berasal dari pemanggilan alat" in self.ID
+        assert "KUDU asale saka alat" in self.JV
+
+    def test_both_require_honest_error_reporting(self):
+        assert "jangan menebak" in self.ID
+        assert "aja ngira-ira" in self.JV
+
+    @staticmethod
+    def _rules(prompt):
+        """Rule sentences, one per instruction the model is given."""
+        return [k.strip() for k in re.split(r"(?<=[.])\s+", prompt.replace("\n", " "))
+                if len(k.strip()) > 10]
+
+    def test_both_prompts_carry_the_same_number_of_rules(self):
+        """Catches a rule being added to one language and not the other.
+
+        Measured against the broken build before starting from this: the
+        Indonesian prompt held 6 rule sentences and the Javanese one held 5,
+        and the missing one was the instruction to state the data's date.
+        A character-length ratio does NOT catch it (the Javanese prompt was
+        only 13 percent shorter, 593 characters against 682), which is why
+        this counts rules rather than bytes.
+        """
+        assert len(self._rules(self.ID)) == len(self._rules(self.JV)), (
+            "jumlah aturan beda antar bahasa, satu sisi kemungkinan kehilangan "
+            "pagar: ID=%d JV=%d"
+            % (len(self._rules(self.ID)), len(self._rules(self.JV)))
+        )
+
+    def test_selected_prompt_follows_the_language(self):
+        kosong = ChatSession(phone_hash="x", lang="jv", turns=[], rolling_summary="")
+        assert orch_mod._system_prompt("jv", kosong).startswith(self.JV[:40])
+        assert orch_mod._system_prompt("id", kosong).startswith(self.ID[:40])
 
 
 # =============================================================================

@@ -827,17 +827,26 @@ def _price_lookup_payload(commodity: str, kabupaten: str) -> dict:
     # this number instead, reporting a 2022 price as a current one. The two
     # differ by a lot: cabai rawit is Rp30.750 here and around Rp58.000 in the
     # 2026 daily series, so the mislabel is not cosmetic.
-    meta = _meta_payload()
+    # Read the constant directly. This used to go through _meta_payload(),
+    # which nests the key under "data_as_of" while the read here was at the
+    # top level, so the lookup returned None and every get_price call shipped
+    # "price_reference_year": null plus a note reading "neraca BPS tahun None"
+    # that still ordered the model to state the year. Caught 2026-09-12 by a
+    # real WhatsApp answer quoting Rp24.375 for Nganjuk with no year at all.
+    # Going straight to the source removes the key path that can be got wrong;
+    # test_price_provenance.py locks _meta_payload to the same constant so the
+    # two cannot drift apart.
+    tahun = BPS_REFERENCE_YEAR
     return {
         "commodity": payload["commodity"],
         **row,
         "price_basis": "neraca pangan BPS (harga produsen bila surplus, harga konsumen bila defisit)",
-        "price_reference_year": meta.get("bps_reference_year"),
+        "price_reference_year": tahun,
         "note_for_model": (
-            "Angka ini berasal dari neraca BPS tahun "
-            f"{meta.get('bps_reference_year')}, BUKAN harga pasar hari ini. "
-            "Sebutkan tahunnya saat mengutip angka ini, dan jangan beri tanggal "
-            "dari alat lain. Untuk harga terkini gunakan get_price_history."
+            f"Angka ini berasal dari neraca BPS tahun {tahun}, BUKAN harga "
+            "pasar hari ini. Sebutkan tahunnya saat mengutip angka ini, dan "
+            "jangan beri tanggal dari alat lain. Untuk harga terkini gunakan "
+            "get_price_history."
         ),
     }
 
